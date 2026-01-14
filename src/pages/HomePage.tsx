@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Zap, Shield, Globe, Layers, ArrowRight, Github, Sparkles } from 'lucide-react';
+import { Zap, Shield, Globe, Layers, Github, Sparkles, Filter, Database, Terminal, Cpu } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { ProxyPlayground } from '@/components/ProxyPlayground';
 import { Toaster } from '@/components/ui/sonner';
@@ -8,134 +8,153 @@ import type { ApiResponse, ProxyStats } from '@shared/types';
 export function HomePage() {
   const [stats, setStats] = useState<ProxyStats | null>(null);
   useEffect(() => {
-    fetch('/api/stats')
-      .then(res => res.json())
-      .then((res: ApiResponse<ProxyStats>) => {
-        if (res.success && res.data) setStats(res.data);
-      })
-      .catch(console.error);
+    const fetchStats = () => {
+      fetch('/api/stats')
+        .then(res => res.json())
+        .then((res: ApiResponse<ProxyStats>) => {
+          if (res.success && res.data) setStats(res.data);
+        })
+        .catch(console.error);
+    };
+    fetchStats();
+    const interval = setInterval(fetchStats, 10000);
+    return () => clearInterval(interval);
   }, []);
+  const topFormat = useMemo(() => {
+    if (!stats?.formatCounts) return 'JSON';
+    return Object.entries(stats.formatCounts)
+      .sort(([, a], [, b]) => b - a)[0][0]
+      .toUpperCase();
+  }, [stats]);
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-50 selection:bg-sky-500/30">
+    <div className="min-h-screen bg-slate-950 text-slate-50 selection:bg-indigo-500/30 font-sans">
       <ThemeToggle />
       <Toaster richColors position="top-center" />
-      {/* Decorative Background */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-sky-500/10 blur-[120px] rounded-full" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-500/10 blur-[120px] rounded-full" />
-        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150" />
+      {/* Decorative background */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+        <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-indigo-600/10 blur-[150px] rounded-full" />
+        <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-sky-600/10 blur-[150px] rounded-full" />
+        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay" />
       </div>
-      {/* Header */}
-      <header className="relative z-10 max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
-        <div className="flex items-center gap-2 group cursor-default">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-sky-400 to-indigo-600 flex items-center justify-center shadow-lg shadow-sky-500/20 group-hover:scale-110 transition-transform">
-            <Zap className="w-5 h-5 text-white fill-white/20" />
+      <header className="relative z-10 max-w-7xl mx-auto px-6 h-24 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-400 via-indigo-500 to-purple-600 flex items-center justify-center shadow-2xl shadow-indigo-500/40">
+            <Zap className="w-6 h-6 text-white fill-white/20" />
           </div>
-          <span className="text-xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-white/60">FluxGate</span>
+          <span className="text-2xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">FluxGate<span className="text-indigo-500">.</span></span>
         </div>
-        <a href="https://github.com" target="_blank" rel="noreferrer" className="p-2 hover:bg-white/5 rounded-full transition-colors">
-          <Github className="w-5 h-5 text-slate-400 hover:text-white" />
-        </a>
+        <div className="flex items-center gap-6">
+          <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-400">
+            <a href="#playground" className="hover:text-white transition-colors">Playground</a>
+            <a href="#features" className="hover:text-white transition-colors">Features</a>
+            <a href="#docs" className="hover:text-white transition-colors">Docs</a>
+          </nav>
+          <a href="https://github.com" target="_blank" rel="noreferrer" className="p-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all">
+            <Github className="w-5 h-5 text-white" />
+          </a>
+        </div>
       </header>
-      <main className="relative z-10 max-w-7xl mx-auto px-4 py-12 md:py-24 space-y-32">
-        {/* Hero Section */}
-        <section className="text-center space-y-8">
+      <main className="relative z-10 max-w-7xl mx-auto px-6 py-16 md:py-32 space-y-40">
+        {/* Hero */}
+        <section className="text-center space-y-10">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-medium text-sky-400 backdrop-blur-sm"
+            initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
+            className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-xs font-bold text-indigo-400 backdrop-blur-md uppercase tracking-widest"
           >
-            <Sparkles className="w-3 h-3" />
-            <span>High Performance Edge Proxy</span>
+            <Sparkles className="w-4 h-4" />
+            <span>Next-Gen Extraction Engine</span>
           </motion.div>
-          <motion.h1 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-            className="text-5xl md:text-8xl font-black tracking-tight leading-[0.9] max-w-4xl mx-auto"
+          <motion.h1
+            initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+            className="text-6xl md:text-9xl font-black tracking-tight leading-[0.85]"
           >
-            CORS Bypassed. <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-400 via-indigo-400 to-purple-400">Instantly.</span>
+            Zero CORS. <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-400 via-indigo-500 to-purple-500">Instant Data.</span>
           </motion.h1>
           <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto leading-relaxed"
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+            className="text-lg md:text-2xl text-slate-400 max-w-3xl mx-auto leading-relaxed font-light"
           >
-            Seamlessly fetch any resource without CORS headaches. 
-            Run on Cloudflare's global network for sub-millisecond overhead.
+            A high-performance HTML extraction proxy. Pull images, links, or specific CSS selectors from any URL without server-side configuration.
           </motion.p>
         </section>
-        {/* Live Stats Ticker */}
-        <section className="flex justify-center">
-          <div className="inline-flex items-center gap-8 px-8 py-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xl">
-            <div className="flex flex-col">
-              <span className="text-2xs text-muted-foreground uppercase tracking-widest">Total Proxied</span>
-              <span className="text-2xl font-mono font-bold text-sky-400">
-                {stats?.totalRequests.toLocaleString() ?? '---'}
-              </span>
-            </div>
-            <div className="w-px h-8 bg-white/10" />
-            <div className="flex flex-col">
-              <span className="text-2xs text-muted-foreground uppercase tracking-widest">Network Speed</span>
-              <span className="text-2xl font-mono font-bold text-indigo-400">~12ms</span>
-            </div>
-          </div>
+        {/* Stats */}
+        <section className="flex flex-wrap justify-center gap-4">
+          <TickerCard label="Requests Proxied" value={stats?.totalRequests.toLocaleString() || '---'} sub="Total global traffic" color="text-sky-400" />
+          <TickerCard label="Popular Format" value={topFormat} sub="Most requested mode" color="text-indigo-400" />
+          <TickerCard label="Avg. Edge Latency" value="~14ms" sub="Global response time" color="text-purple-400" />
         </section>
         {/* Playground */}
-        <section className="space-y-12">
-          <div className="text-center">
-            <h2 className="text-3xl font-bold mb-4">Interactive Playground</h2>
-            <p className="text-slate-400">Paste any URL below and watch FluxGate bypass restrictions in real-time.</p>
+        <section id="playground" className="space-y-16">
+          <div className="text-center space-y-4">
+            <h2 className="text-4xl md:text-5xl font-black">Data Playground</h2>
+            <p className="text-slate-500 text-lg">Experience the power of HTMLRewriter-based streaming extraction.</p>
           </div>
           <ProxyPlayground />
         </section>
-        {/* Features Grid */}
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <FeatureCard 
-            icon={<Shield className="w-6 h-6 text-sky-400" />}
-            title="Privacy First"
-            description="We don't log your requests. Your data is passed through our workers and never touches a disk."
-          />
-          <FeatureCard 
-            icon={<Zap className="w-6 h-6 text-yellow-400" />}
-            title="Edge Performance"
-            description="Built on Hono and Cloudflare Workers for the fastest possible response times globally."
-          />
-          <FeatureCard 
-            icon={<Layers className="w-6 h-6 text-indigo-400" />}
-            title="Dual Modes"
-            description="Choose between Wrapped JSON for easy API parsing or Raw mode for binary transparent streaming."
-          />
+        {/* Advanced Capabilities */}
+        <section id="features" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <FeatureCard icon={<Filter className="text-sky-400" />} title="Smart Selectors" desc="Extract data from any CSS class or ID. Get clean JSON arrays of nested content instantly." />
+          <FeatureCard icon={<Database className="text-indigo-400" />} title="Media Scraping" desc="Auto-resolve relative URLs for images and videos into absolute, ready-to-use links." />
+          <FeatureCard icon={<Cpu className="text-purple-400" />} title="Lazy Processing" desc="Simulate user wait times with our 'Delay' feature to handle hydration-heavy sites." />
+          <FeatureCard icon={<Terminal className="text-emerald-400" />} title="Binary Streaming" desc="Raw mode supports transparent binary streaming for images, PDFs, and assets." />
         </section>
       </main>
-      <footer className="border-t border-white/5 py-12 mt-24">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-8">
-          <div className="flex items-center gap-2 opacity-50">
-            <Zap className="w-4 h-4" />
-            <span className="text-sm font-bold">FluxGate</span>
+      <footer className="border-t border-white/5 py-20 mt-40 bg-slate-900/50 backdrop-blur-xl">
+        <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-12 items-start">
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <Zap className="w-5 h-5 text-indigo-500" />
+              <span className="font-black text-xl">FluxGate</span>
+            </div>
+            <p className="text-slate-500 text-sm max-w-xs leading-relaxed">The developer's choice for bypassing CORS and extracting edge data. No logs, no limits, pure performance.</p>
           </div>
-          <div className="flex gap-8 text-sm text-slate-500">
-            <a href="#" className="hover:text-white transition-colors">Documentation</a>
-            <a href="#" className="hover:text-white transition-colors">Status</a>
-            <a href="#" className="hover:text-white transition-colors">Contact</a>
+          <div className="grid grid-cols-2 gap-8">
+            <div className="space-y-4">
+              <h4 className="text-white font-bold text-sm uppercase tracking-widest">Platform</h4>
+              <ul className="text-slate-500 text-sm space-y-2">
+                <li><a href="#" className="hover:text-indigo-400">Documentation</a></li>
+                <li><a href="#" className="hover:text-indigo-400">Edge Network</a></li>
+                <li><a href="#" className="hover:text-indigo-400">Status</a></li>
+              </ul>
+            </div>
+            <div className="space-y-4">
+              <h4 className="text-white font-bold text-sm uppercase tracking-widest">Community</h4>
+              <ul className="text-slate-500 text-sm space-y-2">
+                <li><a href="#" className="hover:text-indigo-400">GitHub</a></li>
+                <li><a href="#" className="hover:text-indigo-400">Discord</a></li>
+                <li><a href="#" className="hover:text-indigo-400">Twitter</a></li>
+              </ul>
+            </div>
           </div>
-          <p className="text-xs text-slate-600">© 2024 FluxGate Engine. Powered by Cloudflare.</p>
+          <div className="text-right flex flex-col items-end gap-2">
+            <p className="text-xs text-slate-600 font-mono">NODE_ENV: production</p>
+            <p className="text-xs text-slate-600 font-mono">REGION: global-edge</p>
+            <p className="text-slate-500 text-sm mt-4">© 2025 FluxGate Engine. All rights reserved.</p>
+          </div>
         </div>
       </footer>
     </div>
   );
 }
-function FeatureCard({ icon, title, description }: { icon: React.ReactNode, title: string, description: string }) {
+function TickerCard({ label, value, sub, color }: { label: string, value: string, sub: string, color: string }) {
   return (
-    <div className="p-8 rounded-3xl bg-white/5 border border-white/5 hover:border-white/10 transition-all hover:-translate-y-1">
-      <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center mb-6">
-        {icon}
-      </div>
-      <h3 className="text-xl font-bold mb-3">{title}</h3>
-      <p className="text-slate-400 leading-relaxed text-sm">{description}</p>
+    <div className="min-w-[240px] p-6 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-xl flex flex-col gap-1">
+      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">{label}</span>
+      <span className={`text-4xl font-black font-mono ${color}`}>{value}</span>
+      <span className="text-xs text-slate-600 font-medium">{sub}</span>
     </div>
   );
 }
+function FeatureCard({ icon, title, desc }: { icon: React.ReactNode, title: string, desc: string }) {
+  return (
+    <div className="p-8 rounded-[2.5rem] bg-slate-900/50 border border-white/5 hover:border-indigo-500/30 transition-all hover:-translate-y-2 group">
+      <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center mb-6 group-hover:bg-indigo-500/10 transition-colors">
+        {React.cloneElement(icon as React.ReactElement, { className: 'w-7 h-7' })}
+      </div>
+      <h3 className="text-xl font-bold mb-3">{title}</h3>
+      <p className="text-slate-500 text-sm leading-relaxed">{desc}</p>
+    </div>
+  );
+}
+import { useMemo } from 'react';

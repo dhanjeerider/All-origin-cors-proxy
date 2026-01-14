@@ -8,16 +8,33 @@ export interface ApiResponse<T = unknown> {
   data?: T;
   error?: string;
 }
-export interface ProxyStats {
-  totalRequests: number;
-  uptime: string;
+export type ProxyFormat = 'default' | 'html' | 'json' | 'text' | 'images' | 'videos' | 'links' | 'class' | 'id';
+export interface ExtractedElement {
+  tag: string;
+  attrs: Record<string, string>;
+  innerText: string;
+  innerHTML: string;
 }
 export interface ProxyResponse {
-  contents: string;
+  contents?: string;
+  url: string;
+  format: ProxyFormat;
   status: {
     url: string;
     content_type: string;
     http_code: number;
     response_time_ms: number;
   };
+  title?: string;
+  text?: string;
+  images?: string[];
+  videos?: string[];
+  links?: string[];
+  extractedElements?: ExtractedElement[];
+  meta?: Record<string, string>;
+}
+export interface ProxyStats {
+  totalRequests: number;
+  uptime: string;
+  formatCounts: Record<string, number>;
 }

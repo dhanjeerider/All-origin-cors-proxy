@@ -1,30 +1,52 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Loader2, Globe, ShieldCheck, Zap } from 'lucide-react';
+import { Send, Loader2, Globe, ShieldCheck, Zap, Image as ImageIcon, Link as LinkIcon, Video, FileText, Code, List } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
 import { CodeBlock } from '@/components/CodeBlock';
 import { toast } from 'sonner';
-import type { ApiResponse, ProxyResponse } from '@shared/types';
+import type { ApiResponse, ProxyResponse, ProxyFormat } from '@shared/types';
 export function ProxyPlayground() {
-  const [url, setUrl] = useState('https://api.github.com/zen');
+  const [url, setUrl] = useState('https://en.wikipedia.org/wiki/Cloudflare');
+  const [format, setFormat] = useState<ProxyFormat>('json');
+  const [delay, setDelay] = useState(0);
+  const [selector, setSelector] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ProxyResponse | null>(null);
-  const [mode, setMode] = useState<'proxy' | 'raw'>('proxy');
+  const [countdown, setCountdown] = useState(0);
+  useEffect(() => {
+    let timer: number;
+    if (loading && countdown > 0) {
+      timer = window.setInterval(() => {
+        setCountdown(prev => Math.max(0, prev - 1));
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [loading, countdown]);
   const handleTest = async () => {
     if (!url) {
       toast.error('Please enter a target URL');
       return;
     }
     setLoading(true);
+    setCountdown(delay);
+    setResult(null);
     try {
-      const encoded = encodeURIComponent(url);
-      const res = await fetch(`/api/proxy?url=${encoded}`);
+      const params = new URLSearchParams({
+        url: encodeURIComponent(url),
+        format: format,
+        delay: delay.toString()
+      });
+      if (format === 'class') params.append('class', selector);
+      if (format === 'id') params.append('id', selector);
+      const res = await fetch(`/api/proxy?${params.toString()}`);
       const data = await res.json() as ApiResponse<ProxyResponse>;
       if (data.success && data.data) {
         setResult(data.data);
-        toast.success('Request successful!');
+        toast.success(`Extracted ${format} successfully!`);
       } else {
         toast.error(data.error || 'Request failed');
       }
@@ -32,124 +54,164 @@ export function ProxyPlayground() {
       toast.error('Connection error');
     } finally {
       setLoading(false);
+      setCountdown(0);
     }
   };
-  const integrationSnippet = `fetch('https://fluxgate.pages.dev/api/${mode}?url=' + encodeURIComponent('${url}'))
-  .then(res => res.${mode === 'proxy' ? 'json()' : 'text()'})
-  .then(data => console.log(data));`;
-
-  const displayData = useMemo(() => {
-    if (!result || !result.status) return null;
-    const ct = result.status.content_type?.toLowerCase().split(';')[0] || 'text/plain';
-    let lang = 'plaintext';
-    if (ct.includes('application/json') || ct.includes('json')) lang = 'json';
-    else if (ct.includes('text/html')) lang = 'html';
-    else if (ct.includes('application/xml') || ct.includes('text/xml')) lang = 'xml';
-    else if (ct.includes('text/javascript') || ct.includes('application/javascript')) lang = 'javascript';
-    else if (ct.includes('text/css')) lang = 'css';
-    else if (ct.includes('text/plain')) lang = 'plaintext';
-    let code = result.contents || '';
-    if (lang === 'json') {
-      try {
-        const parsed = JSON.parse(code);
-        code = JSON.stringify(parsed, null, 2);
-      } catch {
-        code = (result.contents || '').substring(0, 5000) + ((result.contents || '').length > 5000 ? '\n... (truncated)' : '');
-      }
-    }
-    return { code, lang };
-  }, [result]);
+  const codeSnippet = `// FluxGate Advanced Extraction
+const target = encodeURIComponent('${url}');
+const api = \`https://fluxgate.pages.dev/api/proxy?url=\${target}&format=${format}${delay > 0 ? `&delay=${delay}` : ''}${selector ? `&${format === 'class' ? 'class' : 'id'}=${selector}` : ''}\`;
+fetch(api)
+  .then(res => res.json())
+  .then(data => console.log(data.data));`;
   return (
-    <div className="w-full max-w-4xl mx-auto">
-      <div className="glass rounded-3xl p-6 md:p-8 space-y-8 relative overflow-hidden">
-        <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
-          <Globe className="w-32 h-32" />
-        </div>
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="flex-1 relative">
-            <Input
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder="https://api.example.com/data"
-              className="bg-slate-900/50 border-white/10 h-12 pl-4 text-white placeholder:text-slate-500"
-            />
+    <div className="w-full max-w-5xl mx-auto">
+      <div className="glass rounded-3xl p-6 md:p-8 space-y-6 relative border-white/10">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="lg:col-span-7 space-y-4">
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider px-1">Target URL</label>
+              <Input
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                placeholder="https://example.com"
+                className="bg-slate-900/50 border-white/10 h-12 text-white"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider px-1">Extraction Mode</label>
+                <Select value={format} onValueChange={(v) => setFormat(v as ProxyFormat)}>
+                  <SelectTrigger className="bg-slate-900/50 border-white/10 h-12">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-900 border-white/10">
+                    <SelectItem value="json">Full JSON</SelectItem>
+                    <SelectItem value="html">Raw HTML</SelectItem>
+                    <SelectItem value="text">Plain Text</SelectItem>
+                    <SelectItem value="images">Images</SelectItem>
+                    <SelectItem value="links">Links</SelectItem>
+                    <SelectItem value="videos">Videos</SelectItem>
+                    <SelectItem value="class">CSS Class</SelectItem>
+                    <SelectItem value="id">Element ID</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider px-1">Lazy Delay ({delay}s)</label>
+                <div className="pt-4 px-2">
+                  <Slider value={[delay]} onValueChange={([v]) => setDelay(v)} max={10} step={1} />
+                </div>
+              </div>
+            </div>
+            {(format === 'class' || format === 'id') && (
+              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-2">
+                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider px-1">
+                  {format === 'class' ? 'Class Name (e.g. post-card)' : 'Element ID (e.g. main-content)'}
+                </label>
+                <Input
+                  value={selector}
+                  onChange={(e) => setSelector(e.target.value)}
+                  placeholder={format === 'class' ? 'Enter class' : 'Enter ID'}
+                  className="bg-slate-900/50 border-white/10 h-12"
+                />
+              </motion.div>
+            )}
           </div>
-          <Button 
-            onClick={handleTest} 
-            disabled={loading}
-            className="h-12 px-8 bg-gradient-to-r from-sky-500 to-indigo-500 hover:from-sky-400 hover:to-indigo-400 text-white font-semibold transition-all shadow-lg shadow-indigo-500/20"
-          >
-            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-            Proxy Request
-          </Button>
+          <div className="lg:col-span-5 flex flex-col justify-end gap-4">
+             <div className="bg-indigo-500/5 border border-indigo-500/10 rounded-2xl p-4 text-xs text-indigo-300 leading-relaxed italic">
+              "Use JSON for full metadata, or specific formats like Images to get clean arrays instantly."
+             </div>
+             <Button
+              onClick={handleTest}
+              disabled={loading}
+              className="h-16 w-full bg-gradient-to-r from-sky-500 via-indigo-500 to-purple-600 hover:scale-[1.02] transition-transform text-lg font-bold shadow-xl shadow-indigo-500/20"
+            >
+              {loading ? (
+                <div className="flex items-center gap-3">
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                  <span>{countdown > 0 ? `Waiting ${countdown}s...` : 'Extracting...'}</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Zap className="h-6 w-6" />
+                  <span>Execute Flux Proxy</span>
+                </div>
+              )}
+            </Button>
+          </div>
         </div>
-        <Tabs defaultValue="response" className="w-full">
+        <Tabs defaultValue="preview" className="w-full">
           <TabsList className="grid w-full grid-cols-2 bg-slate-900/50 border border-white/5">
-            <TabsTrigger value="response">Response Data</TabsTrigger>
-            <TabsTrigger value="code">Integration</TabsTrigger>
+            <TabsTrigger value="preview">Visual Data</TabsTrigger>
+            <TabsTrigger value="code">Integration Code</TabsTrigger>
           </TabsList>
-          <TabsContent value="response" className="mt-6">
+          <TabsContent value="preview" className="mt-6 min-h-[400px]">
             <AnimatePresence mode="wait">
               {result ? (
-                <motion.div 
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="space-y-4"
-                >
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <StatusItem icon={<ShieldCheck className="w-4 h-4 text-green-400" />} label="Status" value={result.status?.http_code?.toString() || 'N/A'} />
-                    <StatusItem icon={<Zap className="w-4 h-4 text-yellow-400" />} label="Time" value={`${result.status?.response_time_ms || 0}ms`} />
-                    <StatusItem icon={<Globe className="w-4 h-4 text-blue-400" />} label="Type" value={result.status?.content_type?.split(';')[0] || 'unknown'} />
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <StatBox icon={<ImageIcon className="w-4 h-4" />} label="Images" value={result.images?.length || 0} />
+                    <StatBox icon={<LinkIcon className="w-4 h-4" />} label="Links" value={result.links?.length || 0} />
+                    <StatBox icon={<Video className="w-4 h-4" />} label="Videos" value={result.videos?.length || 0} />
+                    <StatBox icon={<Zap className="w-4 h-4" />} label="Latency" value={`${result.status.response_time_ms}ms`} />
                   </div>
-                  <CodeBlock
-                    language={displayData?.lang || 'plaintext'}
-                    code={displayData?.code || ''}
-                    className="max-h-[300px]"
-                  />
+                  {format === 'images' && result.images && (
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
+                      {result.images.slice(0, 18).map((img, i) => (
+                        <div key={i} className="aspect-square rounded-lg overflow-hidden border border-white/5 bg-slate-900 group relative">
+                          <img src={img} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" alt="" />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {format === 'links' && result.links && (
+                    <div className="space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar">
+                      {result.links.map((link, i) => (
+                        <div key={i} className="px-3 py-2 bg-white/5 border border-white/5 rounded text-xs font-mono truncate text-blue-400">
+                          {link}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {(format === 'json' || format === 'html' || format === 'class' || format === 'id') && (
+                     <CodeBlock
+                        language={format === 'json' ? 'json' : 'html'}
+                        code={format === 'json' ? JSON.stringify(result, null, 2) : (result.contents || '')}
+                        className="max-h-[400px]"
+                     />
+                  )}
+                  {format === 'text' && (
+                    <div className="p-4 bg-slate-900/50 border border-white/5 rounded-xl text-sm leading-relaxed text-slate-300 max-h-[400px] overflow-y-auto whitespace-pre-wrap font-sans">
+                      {result.text}
+                    </div>
+                  )}
                 </motion.div>
               ) : (
-                <div className="h-[200px] flex items-center justify-center border-2 border-dashed border-white/5 rounded-xl text-muted-foreground italic">
-                  Run a request to see the magic...
+                <div className="h-[400px] flex flex-col items-center justify-center border-2 border-dashed border-white/5 rounded-3xl text-slate-500 gap-4">
+                  <div className="p-4 rounded-full bg-slate-900/50 border border-white/5">
+                    <Globe className="w-12 h-12 opacity-20" />
+                  </div>
+                  <p className="font-medium">Ready for your first request</p>
                 </div>
               )}
             </AnimatePresence>
           </TabsContent>
           <TabsContent value="code" className="mt-6">
-            <div className="space-y-4">
-              <div className="flex gap-2">
-                <Button 
-                  variant={mode === 'proxy' ? 'secondary' : 'ghost'} 
-                  size="sm" 
-                  onClick={() => setMode('proxy')}
-                  className="text-xs"
-                >
-                  Wrapped JSON
-                </Button>
-                <Button 
-                  variant={mode === 'raw' ? 'secondary' : 'ghost'} 
-                  size="sm" 
-                  onClick={() => setMode('raw')}
-                  className="text-xs"
-                >
-                  Raw Transparent
-                </Button>
-              </div>
-              <CodeBlock language="javascript" code={integrationSnippet} />
-            </div>
+            <CodeBlock language="javascript" code={codeSnippet} />
           </TabsContent>
         </Tabs>
       </div>
     </div>
   );
 }
-function StatusItem({ icon, label, value }: { icon: React.ReactNode, label: string, value: string }) {
+function StatBox({ icon, label, value }: { icon: React.ReactNode, label: string, value: string | number }) {
   return (
-    <div className="bg-white/5 rounded-xl p-3 border border-white/5">
-      <div className="flex items-center gap-2 text-2xs font-medium text-muted-foreground uppercase mb-1">
+    <div className="bg-white/5 border border-white/5 rounded-2xl p-4 hover:bg-white/[0.07] transition-colors">
+      <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">
         {icon}
         {label}
       </div>
-      <div className="text-sm font-mono text-foreground font-bold">{value}</div>
+      <div className="text-xl font-mono font-bold text-white">{value}</div>
     </div>
   );
 }
