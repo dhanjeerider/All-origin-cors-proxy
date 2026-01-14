@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Zap, Shield, Globe, Layers, Github, Sparkles, Filter, Database, Terminal, Cpu } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -14,16 +14,18 @@ export function HomePage() {
         .then((res: ApiResponse<ProxyStats>) => {
           if (res.success && res.data) setStats(res.data);
         })
-        .catch(console.error);
+        .catch(err => console.error('Failed to fetch stats:', err));
     };
     fetchStats();
-    const interval = setInterval(fetchStats, 10000);
+    const interval = setInterval(fetchStats, 15000);
     return () => clearInterval(interval);
   }, []);
   const topFormat = useMemo(() => {
     if (!stats?.formatCounts) return 'JSON';
-    return Object.entries(stats.formatCounts)
-      .sort(([, a], [, b]) => b - a)[0][0]
+    const entries = Object.entries(stats.formatCounts);
+    if (entries.length === 0) return 'JSON';
+    return entries
+      .sort(([, a], [, b]) => (b as number) - (a as number))[0][0]
       .toUpperCase();
   }, [stats]);
   return (
@@ -41,7 +43,9 @@ export function HomePage() {
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-400 via-indigo-500 to-purple-600 flex items-center justify-center shadow-2xl shadow-indigo-500/40">
             <Zap className="w-6 h-6 text-white fill-white/20" />
           </div>
-          <span className="text-2xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">FluxGate<span className="text-indigo-500">.</span></span>
+          <span className="text-2xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
+            FluxGate<span className="text-indigo-500">.</span>
+          </span>
         </div>
         <div className="flex items-center gap-6">
           <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-400">
@@ -55,36 +59,53 @@ export function HomePage() {
         </div>
       </header>
       <main className="relative z-10 max-w-7xl mx-auto px-6 py-16 md:py-32 space-y-40">
-        {/* Hero */}
         <section className="text-center space-y-10">
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
+            initial={{ opacity: 0, scale: 0.9 }} 
+            animate={{ opacity: 1, scale: 1 }}
             className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-xs font-bold text-indigo-400 backdrop-blur-md uppercase tracking-widest"
           >
             <Sparkles className="w-4 h-4" />
             <span>Next-Gen Extraction Engine</span>
           </motion.div>
           <motion.h1
-            initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+            initial={{ opacity: 0, y: 30 }} 
+            animate={{ opacity: 1, y: 0 }} 
+            transition={{ delay: 0.1 }}
             className="text-6xl md:text-9xl font-black tracking-tight leading-[0.85]"
           >
             Zero CORS. <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-400 via-indigo-500 to-purple-500">Instant Data.</span>
           </motion.h1>
           <motion.p
-            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+            initial={{ opacity: 0, y: 20 }} 
+            animate={{ opacity: 1, y: 0 }} 
+            transition={{ delay: 0.2 }}
             className="text-lg md:text-2xl text-slate-400 max-w-3xl mx-auto leading-relaxed font-light"
           >
             A high-performance HTML extraction proxy. Pull images, links, or specific CSS selectors from any URL without server-side configuration.
           </motion.p>
         </section>
-        {/* Stats */}
         <section className="flex flex-wrap justify-center gap-4">
-          <TickerCard label="Requests Proxied" value={stats?.totalRequests.toLocaleString() || '---'} sub="Total global traffic" color="text-sky-400" />
-          <TickerCard label="Popular Format" value={topFormat} sub="Most requested mode" color="text-indigo-400" />
-          <TickerCard label="Avg. Edge Latency" value="~14ms" sub="Global response time" color="text-purple-400" />
+          <TickerCard 
+            label="Requests Proxied" 
+            value={stats?.totalRequests.toLocaleString() || '---'} 
+            sub="Total global traffic" 
+            color="text-sky-400" 
+          />
+          <TickerCard 
+            label="Popular Format" 
+            value={topFormat} 
+            sub="Most requested mode" 
+            color="text-indigo-400" 
+          />
+          <TickerCard 
+            label="Avg. Edge Latency" 
+            value="~14ms" 
+            sub="Global response time" 
+            color="text-purple-400" 
+          />
         </section>
-        {/* Playground */}
         <section id="playground" className="space-y-16">
           <div className="text-center space-y-4">
             <h2 className="text-4xl md:text-5xl font-black">Data Playground</h2>
@@ -92,12 +113,27 @@ export function HomePage() {
           </div>
           <ProxyPlayground />
         </section>
-        {/* Advanced Capabilities */}
         <section id="features" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <FeatureCard icon={<Filter className="text-sky-400" />} title="Smart Selectors" desc="Extract data from any CSS class or ID. Get clean JSON arrays of nested content instantly." />
-          <FeatureCard icon={<Database className="text-indigo-400" />} title="Media Scraping" desc="Auto-resolve relative URLs for images and videos into absolute, ready-to-use links." />
-          <FeatureCard icon={<Cpu className="text-purple-400" />} title="Lazy Processing" desc="Simulate user wait times with our 'Delay' feature to handle hydration-heavy sites." />
-          <FeatureCard icon={<Terminal className="text-emerald-400" />} title="Binary Streaming" desc="Raw mode supports transparent binary streaming for images, PDFs, and assets." />
+          <FeatureCard 
+            icon={<Filter className="text-sky-400" />} 
+            title="Smart Selectors" 
+            desc="Extract data from any CSS class or ID. Get clean JSON arrays of nested content instantly." 
+          />
+          <FeatureCard 
+            icon={<Database className="text-indigo-400" />} 
+            title="Media Scraping" 
+            desc="Auto-resolve relative URLs for images and videos into absolute, ready-to-use links." 
+          />
+          <FeatureCard 
+            icon={<Cpu className="text-purple-400" />} 
+            title="Lazy Processing" 
+            desc="Simulate user wait times with our 'Delay' feature to handle hydration-heavy sites." 
+          />
+          <FeatureCard 
+            icon={<Terminal className="text-emerald-400" />} 
+            title="Binary Streaming" 
+            desc="Raw mode supports transparent binary streaming for images, PDFs, and assets." 
+          />
         </section>
       </main>
       <footer className="border-t border-white/5 py-20 mt-40 bg-slate-900/50 backdrop-blur-xl">
@@ -107,7 +143,9 @@ export function HomePage() {
               <Zap className="w-5 h-5 text-indigo-500" />
               <span className="font-black text-xl">FluxGate</span>
             </div>
-            <p className="text-slate-500 text-sm max-w-xs leading-relaxed">The developer's choice for bypassing CORS and extracting edge data. No logs, no limits, pure performance.</p>
+            <p className="text-slate-500 text-sm max-w-xs leading-relaxed">
+              The developer's choice for bypassing CORS and extracting edge data. No logs, no limits, pure performance.
+            </p>
           </div>
           <div className="grid grid-cols-2 gap-8">
             <div className="space-y-4">
@@ -128,7 +166,7 @@ export function HomePage() {
             </div>
           </div>
           <div className="text-right flex flex-col items-end gap-2">
-            <p className="text-xs text-slate-600 font-mono">NODE_ENV: production</p>
+            <p className="text-xs text-slate-600 font-mono">ENV: production</p>
             <p className="text-xs text-slate-600 font-mono">REGION: global-edge</p>
             <p className="text-slate-500 text-sm mt-4">© 2025 FluxGate Engine. All rights reserved.</p>
           </div>
@@ -150,11 +188,10 @@ function FeatureCard({ icon, title, desc }: { icon: React.ReactNode, title: stri
   return (
     <div className="p-8 rounded-[2.5rem] bg-slate-900/50 border border-white/5 hover:border-indigo-500/30 transition-all hover:-translate-y-2 group">
       <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center mb-6 group-hover:bg-indigo-500/10 transition-colors">
-        {React.cloneElement(icon as React.ReactElement, { className: 'w-7 h-7' })}
+        {React.isValidElement(icon) ? React.cloneElement(icon as React.ReactElement, { className: 'w-7 h-7' }) : icon}
       </div>
       <h3 className="text-xl font-bold mb-3">{title}</h3>
       <p className="text-slate-500 text-sm leading-relaxed">{desc}</p>
     </div>
   );
 }
-import { useMemo } from 'react';
