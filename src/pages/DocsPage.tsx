@@ -20,96 +20,91 @@ export function DocsPage() {
           <div className="space-y-4">
             <div className="flex items-center gap-4">
               <Zap className="w-8 h-8 text-indigo-500" />
-              <h1 className="text-4xl md:text-5xl font-bold tracking-tight">Documentation</h1>
+              <h1 className="text-4xl md:text-5xl font-bold tracking-tight">API Documentation</h1>
             </div>
             <p className="text-xl text-slate-400 max-w-3xl leading-relaxed">
-              FluxGate is a high-speed, transparent CORS proxy running on Cloudflare Workers. It provides raw streaming passthrough by default.
+              FluxGate v2.1 uses high-performance, path-based routing. Choose the endpoint that matches your required output format.
             </p>
           </div>
         </header>
-        <section id="quickstart" className="space-y-6">
+        <section id="endpoints" className="space-y-10">
           <h2 className="text-2xl font-bold flex items-center gap-2">
-            <ChevronRight className="w-5 h-5 text-indigo-500" /> Default Usage (Streaming)
+            <ChevronRight className="w-5 h-5 text-indigo-500" /> Primary Endpoints
           </h2>
-          <p className="text-slate-400">
-            By default, FluxGate acts as a transparent proxy. Simply provide the <code>url</code> parameter. The response will be streamed directly from the origin with CORS headers injected.
-          </p>
-          <CodeBlock
-            language="javascript"
-            code={`// Minimal transparent proxy
-const target = encodeURIComponent('https://example.com/data.json');
-fetch(\`${origin}/api/proxy?url=\${target}\`)
-  .then(res => res.json())
-  .then(console.log);`}
-          />
+          <div className="grid gap-8">
+            <div className="space-y-4">
+              <h3 className="text-lg font-bold text-indigo-400">/api/proxy — Raw Passthrough</h3>
+              <p className="text-slate-400">The fastest way to bypass CORS. Returns the raw response body from the target URL with zero server-side processing.</p>
+              <CodeBlock language="javascript" code={`fetch(\`${origin}/api/proxy?url=https://example.com\`)`} />
+            </div>
+            <div className="space-y-4">
+              <h3 className="text-lg font-bold text-indigo-400">/api/json — Full Extract</h3>
+              <p className="text-slate-400">Returns a structured JSON response containing metadata, images, links, and page title.</p>
+              <CodeBlock language="bash" code={`curl "${origin}/api/json?url=https://wikipedia.org"`} />
+            </div>
+            <div className="space-y-4">
+              <h3 className="text-lg font-bold text-indigo-400">/api/text — Content Extraction</h3>
+              <p className="text-slate-400">Strips scripts and styles, returning only the readable text content of the target page.</p>
+              <CodeBlock language="javascript" code={`fetch(\`${origin}/api/text?url=https://blog.com/post\`)`} />
+            </div>
+          </div>
         </section>
-        <section id="extraction" className="space-y-6">
+        <section id="selectors" className="space-y-6">
           <h2 className="text-2xl font-bold flex items-center gap-2">
-            <MousePointer2 className="w-5 h-5 text-indigo-500" /> On-the-fly Extraction
+            <MousePointer2 className="w-5 h-5 text-indigo-500" /> Fragment Extraction
           </h2>
-          <p className="text-slate-400">
-            Use the <code>format</code> parameter to trigger edge-side extraction using HTMLRewriter. This reduces payload size by only returning specific data.
-          </p>
-          <CodeBlock
-            language="bash"
-            code={`# Extract all image URLs from a page
-curl "${origin}/api/proxy?url=https://wikipedia.org&format=images"`}
-          />
+          <p className="text-slate-400">Extract specific portions of the DOM by providing a class or ID selector.</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="p-4 bg-slate-900/50 border border-white/10 rounded-lg space-y-2">
+              <p className="text-xs font-bold text-slate-500 uppercase">CSS Class</p>
+              <code className="text-indigo-400 text-sm">/api/class?url=...&class=my-div</code>
+            </div>
+            <div className="p-4 bg-slate-900/50 border border-white/10 rounded-lg space-y-2">
+              <p className="text-xs font-bold text-slate-500 uppercase">Element ID</p>
+              <code className="text-indigo-400 text-sm">/api/id?url=...&id=header-01</code>
+            </div>
+          </div>
         </section>
         <section id="reference" className="space-y-6">
           <h2 className="text-2xl font-bold flex items-center gap-2">
-            <Settings2 className="w-5 h-5 text-indigo-500" /> API Reference
+            <Settings2 className="w-5 h-5 text-indigo-500" /> Reference Table
           </h2>
           <div className="overflow-x-auto border border-white/10 rounded-xl bg-slate-900/20">
             <table className="w-full text-left text-sm border-collapse">
               <thead className="bg-white/5 text-slate-300 font-bold uppercase text-[10px] tracking-widest">
                 <tr>
-                  <th className="px-6 py-4">Param</th>
-                  <th className="px-6 py-4">Type</th>
-                  <th className="px-6 py-4">Default</th>
-                  <th className="px-6 py-4">Description</th>
+                  <th className="px-6 py-4">Endpoint Path</th>
+                  <th className="px-6 py-4">Response Type</th>
+                  <th className="px-6 py-4">Use Case</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5 text-slate-400">
                 <tr>
-                  <td className="px-6 py-4 font-mono text-indigo-400 font-bold">url</td>
-                  <td className="px-6 py-4">string</td>
-                  <td className="px-6 py-4 text-red-500">Required</td>
-                  <td className="px-6 py-4">Encoded target URL to fetch.</td>
+                  <td className="px-6 py-4 font-mono text-indigo-400 font-bold">/api/proxy</td>
+                  <td className="px-6 py-4 italic">Streaming (Raw)</td>
+                  <td className="px-6 py-4">Direct resource loading, APIs, media streams.</td>
                 </tr>
                 <tr>
-                  <td className="px-6 py-4 font-mono text-indigo-400 font-bold">format</td>
-                  <td className="px-6 py-4">string</td>
-                  <td className="px-6 py-4 italic">streaming</td>
-                  <td className="px-6 py-4">json, text, images, links, class, id.</td>
+                  <td className="px-6 py-4 font-mono text-indigo-400 font-bold">/api/json</td>
+                  <td className="px-6 py-4">JSON (Full)</td>
+                  <td className="px-6 py-4">Scraping, metadata previews, enrichment.</td>
                 </tr>
                 <tr>
-                  <td className="px-6 py-4 font-mono text-indigo-400 font-bold">class</td>
-                  <td className="px-6 py-4">string</td>
-                  <td className="px-6 py-4 italic">-</td>
-                  <td className="px-6 py-4">CSS class to extract (requires format=class).</td>
+                  <td className="px-6 py-4 font-mono text-indigo-400 font-bold">/api/images</td>
+                  <td className="px-6 py-4">JSON (Images)</td>
+                  <td className="px-6 py-4">Gallery generation, asset discovery.</td>
+                </tr>
+                <tr>
+                  <td className="px-6 py-4 font-mono text-indigo-400 font-bold">/api/links</td>
+                  <td className="px-6 py-4">JSON (Links)</td>
+                  <td className="px-6 py-4">Crawler development, site mapping.</td>
                 </tr>
               </tbody>
             </table>
           </div>
         </section>
-        <section id="security" className="space-y-6">
-          <h2 className="text-2xl font-bold flex items-center gap-2">
-            <ShieldCheck className="w-5 h-5 text-indigo-500" /> Security
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="p-6 bg-slate-900/40 border border-white/5 rounded-xl">
-              <h4 className="font-bold text-white mb-2">Zero Logs</h4>
-              <p className="text-sm text-slate-500">We do not store request history, target URLs, or user data. Analytics have been removed for maximum privacy and speed.</p>
-            </div>
-            <div className="p-6 bg-slate-900/40 border border-white/5 rounded-xl">
-              <h4 className="font-bold text-white mb-2">Header Stripping</h4>
-              <p className="text-sm text-slate-500">Sensitive headers like <code>Set-Cookie</code> are removed from upstream responses before being delivered to the client.</p>
-            </div>
-          </div>
-        </section>
         <footer className="pt-12 border-t border-white/5 text-center text-slate-600 text-xs tracking-widest uppercase">
-          FluxGate Engine &bull; Streaming Optimized &bull; v2.1
+          FluxGate Engine &bull; Path-Based Routing &bull; v2.1
         </footer>
       </div>
     </div>

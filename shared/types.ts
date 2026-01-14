@@ -8,6 +8,15 @@ export interface ApiResponse<T = unknown> {
   data?: T;
   error?: string;
 }
+/**
+ * ProxyFormat maps to dedicated API endpoints:
+ * 'json' -> /api/json
+ * 'text' -> /api/text
+ * 'images' -> /api/images
+ * 'links' -> /api/links
+ * 'class' -> /api/class
+ * 'id' -> /api/id
+ */
 export type ProxyFormat = 'default' | 'html' | 'json' | 'text' | 'images' | 'videos' | 'links' | 'class' | 'id';
 export interface ExtractedElement {
   tag: string;

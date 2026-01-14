@@ -1,5 +1,5 @@
 import React from 'react';
-import { Zap, Shield, Filter, Database, Github, Sparkles, Cpu } from 'lucide-react';
+import { Zap, Shield, Filter, Database, Github, Sparkles, Cpu, Terminal } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { ProxyPlayground } from '@/components/ProxyPlayground';
 import { Toaster } from '@/components/ui/sonner';
@@ -14,7 +14,7 @@ export function HomePage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <header className="h-20 flex items-center justify-between border-b border-white/5">
           <div className="flex items-center gap-2">
-            <Zap className="w-6 h-6 text-indigo-500" />
+            <Zap className="w-6 h-6 text-indigo-500 fill-indigo-500" />
             <span className="text-xl font-bold tracking-tight">FluxGate</span>
           </div>
           <div className="flex items-center gap-6">
@@ -31,40 +31,40 @@ export function HomePage() {
           <section className="text-center space-y-6 max-w-4xl mx-auto">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-xs font-semibold text-indigo-400">
               <Sparkles className="w-3 h-3" />
-              <span>High-Performance Streaming Proxy</span>
+              <span>Edge-First Path-Based API</span>
             </div>
             <h1 className="text-4xl md:text-6xl font-bold tracking-tight leading-tight">
-              Bypass CORS Restrictions. <br />
-              <span className="text-indigo-500 text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">Access Any Origin.</span>
+              Modern CORS Proxying. <br />
+              <span className="text-indigo-500 text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">Simplified Routing.</span>
             </h1>
             <p className="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto font-normal leading-relaxed">
-              A minimalist edge utility for developers. Raw streaming passthrough by default, with powerful on-the-fly extraction when needed.
+              Bypass restrictions with dedicated path-based endpoints. From raw streaming passthrough to intelligent JSON extraction, all at the edge.
             </p>
             <div className="flex justify-center gap-4 pt-4">
               <a href="#playground">
-                <Button className="bg-indigo-600 hover:bg-indigo-700 h-12 px-8 rounded-md font-semibold">
-                  Open Playground
+                <Button className="bg-indigo-600 hover:bg-indigo-700 h-12 px-8 rounded-md font-semibold gap-2">
+                  <Terminal className="w-4 h-4" /> Try Playground
                 </Button>
               </a>
               <Link to="/docs">
                 <Button variant="outline" className="h-12 px-8 rounded-md border-white/10 bg-white/5 font-semibold">
-                  View API Docs
+                  API Docs
                 </Button>
               </Link>
             </div>
           </section>
           <section id="playground" className="space-y-10 scroll-mt-24">
             <div className="text-center space-y-2">
-              <h2 className="text-3xl font-bold">Request Playground</h2>
-              <p className="text-slate-500">Test the streaming edge engine in real-time.</p>
+              <h2 className="text-3xl font-bold">Endpoint Playground</h2>
+              <p className="text-slate-500">Select a path and see the FluxGate engine in action.</p>
             </div>
             <ProxyPlayground />
           </section>
           <section id="features" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <FeatureCard icon={<Filter />} title="Smart Selectors" desc="Target any CSS class or ID to extract specific DOM fragments." />
-            <FeatureCard icon={<Database />} title="Media Resolver" desc="Automatic conversion of relative paths to absolute URLs." />
-            <FeatureCard icon={<Cpu />} title="Streaming Mode" desc="Transparent low-latency passthrough with CORS header injection." />
-            <FeatureCard icon={<Shield />} title="Secure Edge" desc="Automatic SSL validation and header sanitization for privacy." />
+            <FeatureCard icon={<Cpu />} title="Path-Based Routing" desc="Dedicated endpoints like /api/text and /api/json for better DX." />
+            <FeatureCard icon={<Filter />} title="Edge Extraction" desc="High-speed HTMLRewriter targeting specific CSS selectors." />
+            <FeatureCard icon={<Database />} title="Zero Buffering" desc="/api/proxy provides a direct streaming pipe with zero overhead." />
+            <FeatureCard icon={<Shield />} title="Header Sanitizer" desc="Strips cookies and tracking headers from the upstream origin." />
           </section>
         </main>
         <footer className="border-t border-white/5 py-12 mt-20 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-slate-500">
@@ -72,7 +72,7 @@ export function HomePage() {
             <Zap className="w-4 h-4 text-indigo-500" />
             <span className="font-bold text-slate-300">FluxGate</span>
           </div>
-          <p>© 2025 FluxGate Engine. Performance First.</p>
+          <p>© 2025 FluxGate Engine. V2.1 Path-Based.</p>
           <div className="flex gap-6">
             <Link to="/docs" className="hover:text-white">Docs</Link>
             <a href="https://github.com" className="hover:text-white">GitHub</a>
