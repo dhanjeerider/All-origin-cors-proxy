@@ -1,5 +1,5 @@
 import React from 'react';
-import { Zap, Shield, Filter, Database, Github, Sparkles, Cpu, Terminal } from 'lucide-react';
+import { Zap, Shield, Filter, Database, Github, Sparkles, Cpu, Terminal, ExternalLink, Globe, FileText, ImageIcon, Link as LinkIcon } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { ProxyPlayground } from '@/components/ProxyPlayground';
 import { Toaster } from '@/components/ui/sonner';
@@ -7,6 +7,8 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 export function HomePage() {
+  const origin = typeof window !== 'undefined' ? window.location.origin : '';
+  const demoTarget = 'https://en.wikipedia.org/wiki/Cloudflare';
   return (
     <div className="min-h-screen bg-slate-950 text-slate-50 font-sans bg-grid-minimal">
       <ThemeToggle />
@@ -53,6 +55,20 @@ export function HomePage() {
               </Link>
             </div>
           </section>
+          <section id="quick-demos" className="space-y-8">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+              <div className="space-y-1">
+                <h2 className="text-2xl font-bold">Quick Demos</h2>
+                <p className="text-slate-500 text-sm">See the engine work in real-time with one click.</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <DemoLink icon={<Globe />} label="Raw HTML Proxy" path={`/api/proxy?url=${demoTarget}`} color="text-blue-400" />
+              <DemoLink icon={<Database />} label="JSON Metadata" path={`/api/json?url=${demoTarget}`} color="text-indigo-400" />
+              <DemoLink icon={<FileText />} label="Clean Text" path={`/api/text?url=${demoTarget}`} color="text-emerald-400" />
+              <DemoLink icon={<LinkIcon />} label="Extracted Links" path={`/api/links?url=${demoTarget}`} color="text-purple-400" />
+            </div>
+          </section>
           <section id="playground" className="space-y-10 scroll-mt-24">
             <div className="text-center space-y-2">
               <h2 className="text-3xl font-bold">Endpoint Playground</h2>
@@ -80,6 +96,23 @@ export function HomePage() {
         </footer>
       </div>
     </div>
+  );
+}
+function DemoLink({ icon, label, path, color }: { icon: React.ReactNode, label: string, path: string, color: string }) {
+  const fullUrl = `${window.location.origin}${path}`;
+  return (
+    <a 
+      href={fullUrl} 
+      target="_blank" 
+      rel="noopener noreferrer"
+      className="group flex items-center justify-between p-4 bg-slate-900/40 border border-white/5 rounded-lg hover:border-indigo-500/30 hover:bg-slate-900/60 transition-all"
+    >
+      <div className="flex items-center gap-3">
+        <div className={color}>{icon}</div>
+        <span className="text-sm font-medium text-slate-300 group-hover:text-white transition-colors">{label}</span>
+      </div>
+      <ExternalLink className="w-3.5 h-3.5 text-slate-600 group-hover:text-indigo-400 transition-colors" />
+    </a>
   );
 }
 function FeatureCard({ icon, title, desc }: { icon: React.ReactNode, title: string, desc: string }) {

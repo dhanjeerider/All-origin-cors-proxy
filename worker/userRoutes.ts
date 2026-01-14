@@ -11,11 +11,12 @@ async function handleExtraction(url: string, format: ProxyFormat, className?: st
   const startTime = Date.now();
   let targetUrl: URL;
   try {
-    targetUrl = new URL(url);
+    // Handle potential double encoding from browser/redirect sources
+    const decodedUrl = decodeURIComponent(url);
+    targetUrl = new URL(decodedUrl.includes('://') ? decodedUrl : url);
   } catch (e) {
     return { success: false, error: 'Invalid Target URL' };
   }
-  // Validate selectors for specific formats
   if ((format === 'class' && !className) || (format === 'id' && !idName)) {
     return { success: false, error: `Selector required for format: ${format}` };
   }
@@ -97,21 +98,28 @@ async function handleExtraction(url: string, format: ProxyFormat, className?: st
                             .trim();
       }
     }
-    // Always return full structure for consistency in the response window
     return { success: true, data: result };
   } catch (e) {
     return { success: false, error: e instanceof Error ? e.message : 'Upstream fetch failed' };
   }
 }
 export function userRoutes(app: Hono<{ Bindings: Env }>) {
+  // Common middleware to ensure BRANDING and CORS headers on all responses
+  app.use('/api/*', async (c, next) => {
+    await next();
+    c.res.headers.set("X-Proxied-By", "FluxGate/2.1");
+    Object.entries(CORS_HEADERS).forEach(([k, v]) => c.res.headers.set(k, v));
+  });
   app.get('/api/proxy', async (c) => {
     const url = c.req.query('url');
     if (!url) return c.json({ success: false, error: 'URL required' }, 400);
     try {
-      const response = await fetch(url, { headers: { "User-Agent": USER_AGENT }, redirect: 'follow' });
+      const decodedUrl = decodeURIComponent(url);
+      const response = await fetch(decodedUrl.includes('://') ? decodedUrl : url, { 
+        headers: { "User-Agent": USER_AGENT }, 
+        redirect: 'follow' 
+      });
       const headers = new Headers(response.headers);
-      Object.entries(CORS_HEADERS).forEach(([k, v]) => headers.set(k, v));
-      headers.set("X-Proxied-By", "FluxGate/2.1");
       headers.set("X-Proxy-Mode", "Streaming");
       return new Response(response.body, { status: response.status, headers });
     } catch (e) {
@@ -126,6 +134,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
       const className = c.req.query('class');
       const idName = c.req.query('id');
       const result = await handleExtraction(url, f, className, idName);
+      // Explicitly set content-type for direct browser viewing
       if (!result.success) {
         return c.json(result, 400);
       }

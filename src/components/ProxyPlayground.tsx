@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Send, Loader2, Globe, Terminal, MousePointer2, Zap } from 'lucide-react';
+import { Send, Loader2, Globe, Terminal, MousePointer2, Zap, Copy, ExternalLink, Check } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -15,6 +15,24 @@ export function ProxyPlayground() {
   const [selector, setSelector] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ProxyResponse | null>(null);
+  const [copiedLink, setCopiedLink] = useState(false);
+  const getFullApiUrl = () => {
+    const origin = window.location.origin;
+    const params = new URLSearchParams({ url });
+    if (endpoint === 'class' && selector) params.append('class', selector);
+    if (endpoint === 'id' && selector) params.append('id', selector);
+    return `${origin}/api/${endpoint}?${params.toString()}`;
+  };
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(getFullApiUrl());
+      setCopiedLink(true);
+      toast.success('Direct API link copied');
+      setTimeout(() => setCopiedLink(false), 2000);
+    } catch (err) {
+      toast.error('Failed to copy');
+    }
+  };
   const handleTest = async () => {
     if (!url) {
       toast.error('Enter a target URL');
@@ -28,10 +46,8 @@ export function ProxyPlayground() {
     setResult(null);
     const startTimestamp = performance.now();
     try {
-      const params = new URLSearchParams({ url });
-      if (endpoint === 'class') params.append('class', selector);
-      if (endpoint === 'id') params.append('id', selector);
-      const res = await fetch(`/api/${endpoint}?${params.toString()}`);
+      const apiUrl = getFullApiUrl();
+      const res = await fetch(apiUrl);
       const contentType = res.headers.get('content-type') || '';
       const clientLatency = Math.round(performance.now() - startTimestamp);
       if (contentType.includes('application/json')) {
@@ -50,11 +66,11 @@ export function ProxyPlayground() {
           url,
           format: 'default',
           contents: text,
-          status: { 
-            url, 
-            content_type: contentType, 
-            http_code: res.status, 
-            response_time_ms: clientLatency 
+          status: {
+            url,
+            content_type: contentType,
+            http_code: res.status,
+            response_time_ms: clientLatency
           }
         });
       }
@@ -81,9 +97,7 @@ fetch(apiUrl.toString())
   const getOutputCode = () => {
     if (!result) return '';
     if (endpoint === 'proxy') return result.contents || '';
-    // Clean output for JSON displays
     const { contents, ...display } = result;
-    // For specialized endpoints, we might want to emphasize the specific data
     if (endpoint === 'text') return JSON.stringify({ text: result.text, status: result.status }, null, 2);
     if (endpoint === 'images') return JSON.stringify({ images: result.images, status: result.status }, null, 2);
     if (endpoint === 'links') return JSON.stringify({ links: result.links, status: result.status }, null, 2);
@@ -135,11 +149,30 @@ fetch(apiUrl.toString())
               </div>
             </div>
           )}
-          <div className={cn("space-y-2", (endpoint === 'class' || endpoint === 'id') ? "lg:col-span-3" : "lg:col-span-5")}>
-            <Button onClick={handleTest} disabled={loading} className="bg-indigo-600 hover:bg-indigo-700 h-12 w-full font-bold shadow-lg shadow-indigo-500/20 active:scale-[0.98] transition-transform">
+          <div className={cn("space-y-2 flex gap-2 items-end", (endpoint === 'class' || endpoint === 'id') ? "lg:col-span-3" : "lg:col-span-5")}>
+            <Button onClick={handleTest} disabled={loading} className="flex-1 bg-indigo-600 hover:bg-indigo-700 h-12 font-bold shadow-lg shadow-indigo-500/20 active:scale-[0.98] transition-transform">
               {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Zap className="w-4 h-4 mr-2 fill-current" />}
-              {loading ? 'Processing...' : 'Execute Request'}
+              {loading ? 'Processing...' : 'Execute'}
             </Button>
+            <Button 
+              variant="outline" 
+              size="icon" 
+              className="h-12 w-12 border-white/10 bg-slate-950 hover:bg-white/5" 
+              onClick={handleCopyLink}
+              title="Copy direct API link"
+            >
+              {copiedLink ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
+            </Button>
+            <a href={getFullApiUrl()} target="_blank" rel="noreferrer">
+              <Button 
+                variant="outline" 
+                size="icon" 
+                className="h-12 w-12 border-white/10 bg-slate-950 hover:bg-white/5"
+                title="Open in new tab"
+              >
+                <ExternalLink className="w-4 h-4" />
+              </Button>
+            </a>
           </div>
         </div>
       </div>
@@ -157,7 +190,7 @@ fetch(apiUrl.toString())
               </div>
             ) : result ? (
               <div className="space-y-6">
-                <div className="flex flex-wrap gap-3">
+                <div className="flex flex-wrap gap-2 md:gap-3">
                   <Badge label="Endpoint" val={`/api/${endpoint}`} />
                   <Badge label="Status" val={result.status.http_code} variant={result.status.http_code >= 400 ? 'error' : 'success'} />
                   <Badge label="Latency" val={`${result.status.response_time_ms}ms`} />
@@ -167,13 +200,13 @@ fetch(apiUrl.toString())
             ) : (
               <div className="flex flex-col items-center justify-center h-[400px] text-slate-600 border-2 border-dashed border-white/5 rounded-xl">
                 <Terminal className="w-10 h-10 opacity-20 mb-4" />
-                <p className="text-sm font-medium">Choose an endpoint and target URL to begin testing</p>
+                <p className="text-sm font-medium">Enter a URL and click Execute to test</p>
               </div>
             )}
           </TabsContent>
           <TabsContent value="code" className="outline-none">
             <div className="space-y-4">
-              <p className="text-sm text-slate-400">Integrate this FluxGate endpoint into your client application:</p>
+              <p className="text-sm text-slate-400">Integrate this FluxGate endpoint into your application:</p>
               <CodeBlock language="javascript" code={getCodeSnippet()} />
             </div>
           </TabsContent>
@@ -189,9 +222,9 @@ function Badge({ label, val, variant = 'default' }: { label: string, val: string
     error: "bg-red-500/10 border-red-500/20 text-red-400"
   };
   return (
-    <div className={cn("px-3 py-1 border rounded-md flex items-center gap-2", styles[variant])}>
-      <span className="text-[10px] font-bold opacity-60 uppercase tracking-tighter">{label}</span>
-      <span className="text-xs font-mono font-bold">{val}</span>
+    <div className={cn("px-2 md:px-3 py-1 border rounded-md flex items-center gap-1.5 md:gap-2 max-w-full overflow-hidden", styles[variant])}>
+      <span className="text-[9px] md:text-[10px] font-bold opacity-60 uppercase tracking-tighter shrink-0">{label}</span>
+      <span className="text-xs font-mono font-bold truncate">{val}</span>
     </div>
   );
 }
