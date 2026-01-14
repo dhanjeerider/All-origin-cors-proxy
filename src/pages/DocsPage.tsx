@@ -1,10 +1,11 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { CodeBlock } from '@/components/CodeBlock';
-import { Zap, ArrowLeft, Terminal, Globe, Layout, Shield, FileJson, Image as ImageIcon, Link as LinkIcon, Video, Type, ChevronRight } from 'lucide-react';
+import { Zap, ArrowLeft, Terminal, Globe, Layout, Shield, FileJson, Image as ImageIcon, Link as LinkIcon, Type, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { cn } from '@/lib/utils';
 export function DocsPage() {
   const origin = window.location.origin;
   const formats = [
@@ -145,8 +146,8 @@ fetch(api)
 }
 function NavBtn({ href, label }: { href: string, label: string }) {
   return (
-    <a 
-      href={href} 
+    <a
+      href={href}
       className="block px-4 py-2.5 rounded-xl text-slate-400 font-bold hover:bg-white/5 hover:text-white transition-all border-l-2 border-transparent hover:border-indigo-500"
     >
       {label}

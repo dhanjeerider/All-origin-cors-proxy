@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Zap, Shield, Globe, Layers, Github, Sparkles, Filter, Database, Terminal, Cpu, ArrowRight, BookOpen } from 'lucide-react';
+import { motion, Variants } from 'framer-motion';
+import { Zap, Shield, Filter, Database, Github, Sparkles, Cpu } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { ProxyPlayground } from '@/components/ProxyPlayground';
 import { Toaster } from '@/components/ui/sonner';
@@ -8,7 +8,7 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { ApiResponse, ProxyStats } from '@shared/types';
-const container = {
+const container: Variants = {
   hidden: { opacity: 0 },
   show: {
     opacity: 1,
@@ -18,9 +18,16 @@ const container = {
     }
   }
 };
-const item = {
+const item: Variants = {
   hidden: { opacity: 0, y: 20 },
-  show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } }
+  show: { 
+    opacity: 1, 
+    y: 0, 
+    transition: { 
+      type: "spring" as const, 
+      stiffness: 100 
+    } 
+  }
 };
 export function HomePage() {
   const [stats, setStats] = useState<ProxyStats | null>(null);
@@ -52,28 +59,28 @@ export function HomePage() {
       {/* Decorative Background */}
       <div className="fixed inset-0 pointer-events-none z-0">
         <div className="bg-grid-slate-900 absolute inset-0 opacity-30" />
-        <motion.div 
-          animate={{ 
+        <motion.div
+          animate={{
             scale: [1, 1.2, 1],
             x: [0, 50, 0],
             y: [0, -30, 0]
           }}
           transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-          className="absolute top-[-10%] left-[-5%] w-[50%] h-[50%] bg-indigo-600/10 blur-[120px] rounded-full" 
+          className="absolute top-[-10%] left-[-5%] w-[50%] h-[50%] bg-indigo-600/10 blur-[120px] rounded-full"
         />
-        <motion.div 
-          animate={{ 
+        <motion.div
+          animate={{
             scale: [1.2, 1, 1.2],
             x: [0, -50, 0],
             y: [0, 30, 0]
           }}
           transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-          className="absolute bottom-[-10%] right-[-5%] w-[50%] h-[50%] bg-sky-600/10 blur-[120px] rounded-full" 
+          className="absolute bottom-[-10%] right-[-5%] w-[50%] h-[50%] bg-sky-600/10 blur-[120px] rounded-full"
         />
       </div>
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <header className="h-24 flex items-center justify-between">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             className="flex items-center gap-3"
@@ -129,7 +136,7 @@ export function HomePage() {
             >
               The high-performance edge proxy for modern developers. Extract clean JSON, media, or specific DOM nodes from any origin instantly.
             </motion.p>
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
@@ -148,7 +155,7 @@ export function HomePage() {
             </motion.div>
           </section>
           {/* Stats Ticker */}
-          <motion.section 
+          <motion.section
             variants={container}
             initial="hidden"
             whileInView="show"
@@ -248,7 +255,7 @@ export function HomePage() {
 }
 function TickerCard({ label, value, sub, color, glow = false }: { label: string, value: string, sub: string, color: string, glow?: boolean }) {
   return (
-    <motion.div 
+    <motion.div
       variants={item}
       whileHover={{ y: -5 }}
       className={cn(
@@ -266,7 +273,7 @@ function TickerCard({ label, value, sub, color, glow = false }: { label: string,
 }
 function FeatureCard({ icon, title, desc }: { icon: React.ReactNode, title: string, desc: string }) {
   return (
-    <motion.div 
+    <motion.div
       whileHover={{ y: -10 }}
       className="p-8 rounded-3xl glass-neon border-white/5 group hover:border-indigo-500/30 transition-colors"
     >
