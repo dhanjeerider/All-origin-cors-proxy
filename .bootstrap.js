@@ -80,7 +80,8 @@ function runSetupCommands() {
     const commands = [
     "bun add react-syntax-highlighter@^15.5.0",
     "bun add react-syntax-highlighter",
-    "bun add lucide-react clsx tailwind-merge framer-motion react-syntax-highlighter"
+    "bun add lucide-react clsx tailwind-merge framer-motion react-syntax-highlighter",
+    "bun add lucide-react@latest"
 ];
     
     if (commands.length === 0) {
