@@ -9,13 +9,7 @@ export interface ApiResponse<T = unknown> {
   error?: string;
 }
 /**
- * ProxyFormat maps to dedicated API endpoints:
- * 'json' -> /api/json
- * 'text' -> /api/text
- * 'images' -> /api/images
- * 'links' -> /api/links
- * 'class' -> /api/class
- * 'id' -> /api/id
+ * ProxyFormat maps to dedicated API endpoints.
  */
 export type ProxyFormat = 'default' | 'html' | 'json' | 'text' | 'images' | 'videos' | 'links' | 'class' | 'id';
 export interface ExtractedElement {
@@ -25,7 +19,6 @@ export interface ExtractedElement {
   innerHTML: string;
 }
 export interface ProxyResponse {
-  contents?: string;
   url: string;
   format: ProxyFormat;
   status: {
@@ -34,6 +27,7 @@ export interface ProxyResponse {
     http_code: number;
     response_time_ms: number;
   };
+  contents?: string;
   title?: string;
   text?: string;
   images?: string[];

@@ -20,6 +20,10 @@ export function ProxyPlayground() {
       toast.error('Enter a target URL');
       return;
     }
+    if ((endpoint === 'class' || endpoint === 'id') && !selector) {
+      toast.error(`Please provide a ${endpoint === 'class' ? 'class name' : 'element ID'}`);
+      return;
+    }
     setLoading(true);
     setResult(null);
     const startTimestamp = performance.now();
@@ -44,9 +48,14 @@ export function ProxyPlayground() {
         const text = await res.text();
         setResult({
           url,
-          format: 'html',
+          format: 'default',
           contents: text,
-          status: { url, content_type: contentType, http_code: res.status, response_time_ms: clientLatency }
+          status: { 
+            url, 
+            content_type: contentType, 
+            http_code: res.status, 
+            response_time_ms: clientLatency 
+          }
         });
       }
     } catch (err) {
@@ -72,7 +81,13 @@ fetch(apiUrl.toString())
   const getOutputCode = () => {
     if (!result) return '';
     if (endpoint === 'proxy') return result.contents || '';
+    // Clean output for JSON displays
     const { contents, ...display } = result;
+    // For specialized endpoints, we might want to emphasize the specific data
+    if (endpoint === 'text') return JSON.stringify({ text: result.text, status: result.status }, null, 2);
+    if (endpoint === 'images') return JSON.stringify({ images: result.images, status: result.status }, null, 2);
+    if (endpoint === 'links') return JSON.stringify({ links: result.links, status: result.status }, null, 2);
+    if (endpoint === 'videos') return JSON.stringify({ videos: result.videos, status: result.status }, null, 2);
     return JSON.stringify(display, null, 2);
   };
   return (
