@@ -56,10 +56,18 @@ export function ProxyPlayground() {
     }
   };
   const getCodeSnippet = () => {
-    const encodedUrl = encodeURIComponent(url);
-    const baseUrl = window.location.origin;
-    const selectorParam = (endpoint === 'class' || endpoint === 'id') ? `&${endpoint}=${selector}` : '';
-    return `// FluxGate Path-Based API: /api/${endpoint}\nfetch('${baseUrl}/api/${endpoint}?url=${encodedUrl}${selectorParam}')\n  .then(res => ${endpoint === 'proxy' ? 'res.text()' : 'res.json()'})\n  .then(data => console.log(data));`;
+    const origin = window.location.origin;
+    const isRaw = endpoint === 'proxy';
+    return `// FluxGate Edge Implementation
+const apiUrl = new URL('/api/${endpoint}', '${origin}');
+apiUrl.searchParams.append('url', '${url}');
+${(endpoint === 'class' || endpoint === 'id') ? `apiUrl.searchParams.append('${endpoint}', '${selector}');\n` : ''}
+fetch(apiUrl.toString())
+  .then(res => ${isRaw ? 'res.text()' : 'res.json()'})
+  .then(data => {
+    console.log('FluxGate Response:', data);
+  })
+  .catch(err => console.error('Proxy Error:', err));`;
   };
   const getOutputCode = () => {
     if (!result) return '';
