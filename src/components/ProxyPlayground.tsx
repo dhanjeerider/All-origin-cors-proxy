@@ -36,7 +36,7 @@ export function ProxyPlayground() {
     setResult(null);
     try {
       const params = new URLSearchParams({
-        url: encodeURIComponent(url),
+        url: url, // URLSearchParams automatically handles encoding
         format: format,
         delay: delay.toString()
       });
@@ -60,7 +60,7 @@ export function ProxyPlayground() {
   };
   const codeSnippet = `/**
  * FluxGate API Integration Example
- * Always encode the target URL to ensure proper parsing.
+ * Note: Browser fetch() handles encoding when using URLSearchParams.
  */
 const api = new URL('/api/proxy', window.location.origin);
 const target = '${url}';
@@ -169,16 +169,16 @@ fetch(api)
                     <StatBox icon={<ImageIcon className="w-4 h-4" />} label="Images" value={result.images?.length || 0} />
                     <StatBox icon={<LinkIcon className="w-4 h-4" />} label="Links" value={result.links?.length || 0} />
                     <StatBox icon={<Video className="w-4 h-4" />} label="Videos" value={result.videos?.length || 0} />
-                    <StatBox icon={<Zap className="w-4 h-4 text-yellow-400" />} label="Latency" value={`${result.status.response_time_ms}ms`} />
+                    <StatBox icon={<Zap className="w-4 h-4 text-yellow-400" />} label="Latency" value={`${result.status?.response_time_ms ?? 0}ms`} />
                   </div>
                   {format === 'images' && result.images && result.images.length > 0 && (
                     <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
                       {result.images.slice(0, 24).map((img, i) => (
                         <div key={i} className="aspect-square rounded-xl overflow-hidden border border-white/5 bg-slate-900 group relative shadow-lg">
-                          <img 
-                            src={img} 
-                            className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300" 
-                            alt="" 
+                          <img
+                            src={img}
+                            className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300"
+                            alt=""
                             loading="lazy"
                             onError={(e) => {
                               (e.target as HTMLImageElement).src = 'https://placehold.co/400x400/0f172a/38bdf8?text=Blocked+by+CORS';
@@ -203,7 +203,13 @@ fetch(api)
                   {(['json', 'html', 'class', 'id'].includes(format)) && (
                      <CodeBlock
                         language={format === 'json' ? 'json' : 'html'}
-                        code={format === 'json' ? JSON.stringify(result, null, 2) : (result.contents || 'No content found.')}
+                        code={
+                          format === 'json' 
+                            ? JSON.stringify(result, null, 2) 
+                            : (format === 'class' || format === 'id') && result.extractedElements?.length
+                              ? JSON.stringify(result.extractedElements, null, 2)
+                              : (result.contents || 'No content found.')
+                        }
                         className="max-h-[500px]"
                      />
                   )}

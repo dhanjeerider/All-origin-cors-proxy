@@ -14,11 +14,12 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
             const data = await stub.getStats();
             return c.json({ success: true, data } satisfies ApiResponse<ProxyStats>);
         } catch (err) {
+            console.error('Stats fetch error:', err);
             return c.json({ success: false, error: 'Failed to fetch stats' }, 500);
         }
     });
     app.get('/api/proxy', async (c) => {
-        const urlParam = c.req.query('url');
+        const urlParam = c.req.query('url'); // Hono already decodes the query parameter
         const format = (c.req.query('format') || 'json') as ProxyFormat;
         const className = c.req.query('class');
         const idName = c.req.query('id');
@@ -28,7 +29,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
         }
         let targetUrl: URL;
         try {
-            targetUrl = new URL(decodeURIComponent(urlParam));
+            targetUrl = new URL(urlParam);
         } catch (e) {
             return c.json({ success: false, error: 'Invalid URL provided' }, 400);
         }
@@ -45,21 +46,22 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
                 redirect: 'follow'
             });
             if (!response.ok && response.status !== 304) {
-                return c.json({ 
-                    success: false, 
+                return c.json({
+                    success: false,
                     error: `Target server returned status ${response.status}`,
-                    data: { http_code: response.status } 
+                    data: { http_code: response.status }
                 }, response.status === 404 ? 404 : 502);
             }
             const accept = c.req.header('Accept') || '';
             const contentType = response.headers.get("content-type") || "";
+            // Handle transparent proxying for HTML requests if requested
             if (format === 'html' && accept.includes('text/html')) {
                 const newHeaders = new Headers(response.headers);
                 Object.entries(CORS_HEADERS).forEach(([k, v]) => newHeaders.set(k, v));
                 newHeaders.set("X-Proxied-By", "FluxGate/2.0");
                 return new Response(response.body, { status: response.status, headers: newHeaders });
             }
-            const result: Partial<ProxyResponse> = {
+            const result: ProxyResponse = {
                 url: targetUrl.toString(),
                 format,
                 status: {
@@ -67,25 +69,29 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
                     content_type: contentType,
                     http_code: response.status,
                     response_time_ms: Date.now() - startTime
-                }
+                },
+                images: [],
+                links: [],
+                videos: [],
+                extractedElements: []
             };
             if (!contentType.includes("text/html")) {
                 const body = await response.text();
                 result.contents = body;
-                return c.json({ success: true, data: result as ProxyResponse });
+                return c.json({ success: true, data: result });
             }
             const images = new Set<string>();
             const links = new Set<string>();
             const videos = new Set<string>();
             const elements: ExtractedElement[] = [];
-            let title = "";
+            let titleText = "";
             const rewriter = new HTMLRewriter()
-                .on('title', { text(t) { title += t.text; } })
+                .on('title', { text(t) { titleText += t.text; } })
                 .on('img', {
                     element(e) {
                         const src = e.getAttribute('src');
                         if (src) {
-                            try { images.add(new URL(src, targetUrl).href); } catch (err) { /* Ignore invalid URLs */ }
+                            try { images.add(new URL(src, targetUrl).href); } catch (err) { /* ignore */ }
                         }
                     }
                 })
@@ -93,7 +99,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
                     element(e) {
                         const href = e.getAttribute('href');
                         if (href && !href.startsWith('#')) {
-                            try { links.add(new URL(href, targetUrl).href); } catch (err) { /* Ignore invalid URLs */ }
+                            try { links.add(new URL(href, targetUrl).href); } catch (err) { /* ignore */ }
                         }
                     }
                 })
@@ -101,7 +107,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
                     element(e) {
                         const src = e.getAttribute('src');
                         if (src) {
-                            try { videos.add(new URL(src, targetUrl).href); } catch (err) { /* Ignore invalid URLs */ }
+                            try { videos.add(new URL(src, targetUrl).href); } catch (err) { /* ignore */ }
                         }
                     }
                 });
@@ -123,8 +129,9 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
                 });
             }
             const rawBody = await response.text();
+            // Perform the transform and consume as text to ensure execution completion
             await rewriter.transform(new Response(rawBody)).text();
-            result.title = title.trim();
+            result.title = titleText.replace(/\s+/g, ' ').trim();
             result.images = Array.from(images);
             result.links = Array.from(links);
             result.videos = Array.from(videos);
@@ -138,7 +145,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
             } else {
                 result.contents = rawBody;
             }
-            return c.json({ success: true, data: result as ProxyResponse } satisfies ApiResponse<ProxyResponse>);
+            return c.json({ success: true, data: result } satisfies ApiResponse<ProxyResponse>);
         } catch (err) {
             console.error('Proxy Error:', err);
             return c.json({ success: false, error: err instanceof Error ? err.message : 'Upstream Request Failed' }, 502);

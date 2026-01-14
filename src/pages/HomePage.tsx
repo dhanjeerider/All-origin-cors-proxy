@@ -27,8 +27,8 @@ export function HomePage() {
     const entries = Object.entries(stats.formatCounts);
     if (entries.length === 0) return 'JSON';
     return entries
-      .sort(([, a], [, b]) => (b as number) - (a as number))[0][0]
-      .toUpperCase();
+      .filter(([, count]) => (count as number) > 0)
+      .sort(([, a], [, b]) => (b as number) - (a as number))[0]?.[0]?.toUpperCase() || 'JSON';
   }, [stats]);
   return (
     <div className="min-h-screen bg-slate-950 text-slate-50 selection:bg-indigo-500/30 font-sans">
@@ -90,7 +90,7 @@ export function HomePage() {
         <section className="flex flex-wrap justify-center gap-4">
           <TickerCard
             label="Requests Proxied"
-            value={stats?.totalRequests.toLocaleString() || '---'}
+            value={stats?.totalRequests?.toLocaleString() ?? '0'}
             sub="Total global traffic"
             color="text-sky-400"
           />
@@ -133,7 +133,7 @@ export function HomePage() {
           <FeatureCard
             icon={<BookOpen className="text-emerald-400" />}
             title="Full Documentation"
-            desc="Comprehensive guides for all 10 extraction formats and integration examples."
+            desc="Comprehensive guides for all extraction formats and integration examples."
             cta={<Link to="/docs"><Button variant="ghost" className="text-emerald-400 h-auto p-0 hover:bg-transparent group">Learn More <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" /></Button></Link>}
           />
         </section>
