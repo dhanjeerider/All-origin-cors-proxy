@@ -99,7 +99,7 @@ async function handleExtraction(url: string, format: ProxyFormat, className?: st
   return { success: true, data: format === 'json' ? result : rest };
 }
 export function userRoutes(app: Hono<{ Bindings: Env }>) {
-  app.get('/api/proxy', async (c) => {
+	app.get('/api/proxy', async (c) => {
     const url = c.req.query('url');
     if (!url) return c.json({ success: false, error: 'URL required' }, 400);
     try {
