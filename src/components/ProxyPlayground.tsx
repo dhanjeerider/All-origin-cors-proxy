@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, Loader2, Globe, ShieldCheck, Zap } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -37,6 +37,28 @@ export function ProxyPlayground() {
   const integrationSnippet = `fetch('https://fluxgate.pages.dev/api/${mode}?url=' + encodeURIComponent('${url}'))
   .then(res => res.${mode === 'proxy' ? 'json()' : 'text()'})
   .then(data => console.log(data));`;
+
+  const displayData = useMemo(() => {
+    if (!result || !result.status) return null;
+    const ct = result.status.content_type?.toLowerCase().split(';')[0] || 'text/plain';
+    let lang = 'plaintext';
+    if (ct.includes('application/json') || ct.includes('json')) lang = 'json';
+    else if (ct.includes('text/html')) lang = 'html';
+    else if (ct.includes('application/xml') || ct.includes('text/xml')) lang = 'xml';
+    else if (ct.includes('text/javascript') || ct.includes('application/javascript')) lang = 'javascript';
+    else if (ct.includes('text/css')) lang = 'css';
+    else if (ct.includes('text/plain')) lang = 'plaintext';
+    let code = result.contents || '';
+    if (lang === 'json') {
+      try {
+        const parsed = JSON.parse(code);
+        code = JSON.stringify(parsed, null, 2);
+      } catch {
+        code = (result.contents || '').substring(0, 5000) + ((result.contents || '').length > 5000 ? '\n... (truncated)' : '');
+      }
+    }
+    return { code, lang };
+  }, [result]);
   return (
     <div className="w-full max-w-4xl mx-auto">
       <div className="glass rounded-3xl p-6 md:p-8 space-y-8 relative overflow-hidden">
@@ -75,14 +97,14 @@ export function ProxyPlayground() {
                   className="space-y-4"
                 >
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <StatusItem icon={<ShieldCheck className="w-4 h-4 text-green-400" />} label="Status" value={result.status.http_code.toString()} />
-                    <StatusItem icon={<Zap className="w-4 h-4 text-yellow-400" />} label="Time" value={`${result.status.response_time_ms}ms`} />
-                    <StatusItem icon={<Globe className="w-4 h-4 text-blue-400" />} label="Type" value={result.status.content_type.split(';')[0]} />
+                    <StatusItem icon={<ShieldCheck className="w-4 h-4 text-green-400" />} label="Status" value={result.status?.http_code?.toString() || 'N/A'} />
+                    <StatusItem icon={<Zap className="w-4 h-4 text-yellow-400" />} label="Time" value={`${result.status?.response_time_ms || 0}ms`} />
+                    <StatusItem icon={<Globe className="w-4 h-4 text-blue-400" />} label="Type" value={result.status?.content_type?.split(';')[0] || 'unknown'} />
                   </div>
-                  <CodeBlock 
-                    language="json" 
-                    code={JSON.stringify(JSON.parse(result.contents || "{}"), null, 2)} 
-                    className="max-h-[300px]" 
+                  <CodeBlock
+                    language={displayData?.lang || 'plaintext'}
+                    code={displayData?.code || ''}
+                    className="max-h-[300px]"
                   />
                 </motion.div>
               ) : (
