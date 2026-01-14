@@ -33,8 +33,3 @@ export interface ProxyResponse {
   extractedElements?: ExtractedElement[];
   meta?: Record<string, string>;
 }
-export interface ProxyStats {
-  totalRequests: number;
-  uptime: string;
-  formatCounts: Record<string, number>;
-}
