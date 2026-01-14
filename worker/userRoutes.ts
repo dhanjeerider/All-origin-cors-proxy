@@ -11,7 +11,6 @@ async function handleExtraction(url: string, format: ProxyFormat, className?: st
   const startTime = Date.now();
   let targetUrl: URL;
   try {
-    // Handle potential double encoding from browser/redirect sources
     const decodedUrl = decodeURIComponent(url);
     targetUrl = new URL(decodedUrl.includes('://') ? decodedUrl : url);
   } catch (e) {
@@ -22,7 +21,10 @@ async function handleExtraction(url: string, format: ProxyFormat, className?: st
   }
   try {
     const response = await fetch(targetUrl.toString(), {
-      headers: { "User-Agent": USER_AGENT },
+      headers: { 
+        "User-Agent": USER_AGENT,
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8"
+      },
       redirect: 'follow'
     });
     const contentType = response.headers.get("content-type") || "";
@@ -39,7 +41,8 @@ async function handleExtraction(url: string, format: ProxyFormat, className?: st
       images: [],
       links: [],
       videos: [],
-      extractedElements: []
+      extractedElements: [],
+      meta: {}
     };
     if (contentType.includes("text/html")) {
       const images = new Set<string>();
@@ -47,8 +50,20 @@ async function handleExtraction(url: string, format: ProxyFormat, className?: st
       const videos = new Set<string>();
       const elements: ExtractedElement[] = [];
       let titleText = "";
+      const meta: Record<string, string> = {};
       const rewriter = new HTMLRewriter()
         .on('title', { text(t) { titleText += t.text; } })
+        .on('meta', {
+          element(e) {
+            const name = e.getAttribute('name') || e.getAttribute('property');
+            const content = e.getAttribute('content');
+            if (name && content) {
+              if (['description', 'keywords', 'og:title', 'og:description', 'og:image', 'twitter:card', 'viewport'].includes(name)) {
+                meta[name] = content;
+              }
+            }
+          }
+        })
         .on('img', {
           element(e) {
             const src = e.getAttribute('src');
@@ -67,44 +82,52 @@ async function handleExtraction(url: string, format: ProxyFormat, className?: st
             if (src) try { videos.add(new URL(src, targetUrl).href); } catch { /* ignore */ }
           }
         });
-      if (format === 'class' && className) {
-        rewriter.on(`.${className}`, {
+      // Handle selector-based extraction with text content capturing
+      const selector = format === 'class' ? `.${className}` : format === 'id' ? `#${idName}` : null;
+      if (selector) {
+        let currentElement: ExtractedElement | null = null;
+        rewriter.on(selector, {
           element(e) {
-            const el: ExtractedElement = { tag: e.tagName, attrs: {}, innerText: "", innerHTML: "" };
-            for (const [name, value] of e.attributes) el.attrs[name] = value;
-            elements.push(el);
-          }
-        });
-      } else if (format === 'id' && idName) {
-        rewriter.on(`#${idName}`, {
-          element(e) {
-            const el: ExtractedElement = { tag: e.tagName, attrs: {}, innerText: "", innerHTML: "" };
-            for (const [name, value] of e.attributes) el.attrs[name] = value;
-            elements.push(el);
+            currentElement = { tag: e.tagName, attrs: {}, innerText: "", innerHTML: "" };
+            for (const [name, value] of e.attributes) {
+              currentElement.attrs[name] = value;
+            }
+            elements.push(currentElement);
+          },
+          text(t) {
+            if (currentElement) {
+              currentElement.innerText += t.text;
+            }
           }
         });
       }
       await rewriter.transform(new Response(rawBody)).text();
       result.title = titleText.replace(/\s+/g, ' ').trim();
-      result.images = Array.from(images);
-      result.links = Array.from(links);
+      result.meta = meta;
+      result.images = Array.from(images).slice(0, 50); // Cap for performance
+      result.links = Array.from(links).slice(0, 100);
       result.videos = Array.from(videos);
-      result.extractedElements = elements;
+      result.extractedElements = elements.map(el => ({
+        ...el,
+        innerText: el.innerText.replace(/\s+/g, ' ').trim()
+      }));
       if (format === 'text') {
-        result.text = rawBody.replace(/<script\b[^>]*>([\s\S]*?)<\/script>/gim, "")
-                            .replace(/<style\b[^>]*>([\s\S]*?)<\/style>/gim, "")
-                            .replace(/<[^>]*>?/gm, ' ')
-                            .replace(/\s+/g, ' ')
-                            .trim();
+        result.text = rawBody
+          .replace(/<script\b[^>]*>([\s\S]*?)<\/script>/gim, "")
+          .replace(/<style\b[^>]*>([\s\S]*?)<\/style>/gim, "")
+          .replace(/<code\b[^>]*>([\s\S]*?)<\/code>/gim, "")
+          .replace(/<[^>]*>?/gm, ' ')
+          .replace(/\s+/g, ' ')
+          .trim();
       }
     }
     return { success: true, data: result };
   } catch (e) {
+    console.error(`[Proxy Error] ${e instanceof Error ? e.message : String(e)}`);
     return { success: false, error: e instanceof Error ? e.message : 'Upstream fetch failed' };
   }
 }
 export function userRoutes(app: Hono<{ Bindings: Env }>) {
-  // Common middleware to ensure BRANDING and CORS headers on all responses
   app.use('/api/*', async (c, next) => {
     await next();
     c.res.headers.set("X-Proxied-By", "FluxGate/2.1");
@@ -115,12 +138,13 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     if (!url) return c.json({ success: false, error: 'URL required' }, 400);
     try {
       const decodedUrl = decodeURIComponent(url);
-      const response = await fetch(decodedUrl.includes('://') ? decodedUrl : url, { 
-        headers: { "User-Agent": USER_AGENT }, 
-        redirect: 'follow' 
+      const response = await fetch(decodedUrl.includes('://') ? decodedUrl : url, {
+        headers: { "User-Agent": USER_AGENT },
+        redirect: 'follow'
       });
       const headers = new Headers(response.headers);
       headers.set("X-Proxy-Mode", "Streaming");
+      headers.set("Access-Control-Allow-Origin", "*");
       return new Response(response.body, { status: response.status, headers });
     } catch (e) {
       return c.json({ success: false, error: 'Fetch failed' }, 502);
@@ -134,10 +158,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
       const className = c.req.query('class');
       const idName = c.req.query('id');
       const result = await handleExtraction(url, f, className, idName);
-      // Explicitly set content-type for direct browser viewing
-      if (!result.success) {
-        return c.json(result, 400);
-      }
+      if (!result.success) return c.json(result, 400);
       return c.json(result);
     });
   });

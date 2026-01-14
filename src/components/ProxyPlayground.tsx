@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Send, Loader2, Globe, Terminal, MousePointer2, Zap, Copy, ExternalLink, Check } from 'lucide-react';
+import { Send, Loader2, Globe, Terminal, MousePointer2, Zap, Copy, ExternalLink, Check, Download } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -16,6 +16,7 @@ export function ProxyPlayground() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ProxyResponse | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [copiedJson, setCopiedJson] = useState(false);
   const getFullApiUrl = () => {
     const origin = window.location.origin;
     const params = new URLSearchParams({ url });
@@ -31,6 +32,17 @@ export function ProxyPlayground() {
       setTimeout(() => setCopiedLink(false), 2000);
     } catch (err) {
       toast.error('Failed to copy');
+    }
+  };
+  const handleCopyJson = async () => {
+    if (!result) return;
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(result, null, 2));
+      setCopiedJson(true);
+      toast.success('Response JSON copied');
+      setTimeout(() => setCopiedJson(false), 2000);
+    } catch (err) {
+      toast.error('Failed to copy JSON');
     }
   };
   const handleTest = async () => {
@@ -83,29 +95,28 @@ export function ProxyPlayground() {
   const getCodeSnippet = () => {
     const origin = window.location.origin;
     const isRaw = endpoint === 'proxy';
-    return `// FluxGate Edge Implementation
-const apiUrl = new URL('/api/${endpoint}', '${origin}');
-apiUrl.searchParams.append('url', '${url}');
-${(endpoint === 'class' || endpoint === 'id') ? `apiUrl.searchParams.append('${endpoint}', '${selector}');\n` : ''}
-fetch(apiUrl.toString())
+    return `/**
+ * FluxGate Edge Proxy Implementation
+ * High-performance ${endpoint} extraction
+ */
+const target = encodeURIComponent('${url}');
+const fluxGateUrl = \`${origin}/api/${endpoint}?url=\${target}${(endpoint === 'class' || endpoint === 'id') ? `&${endpoint}=${selector}` : ''}\`;
+fetch(fluxGateUrl)
   .then(res => ${isRaw ? 'res.text()' : 'res.json()'})
   .then(data => {
-    console.log('FluxGate Response:', data);
+    // Process your proxied data here
+    console.log('Success:', data);
   })
-  .catch(err => console.error('Proxy Error:', err));`;
+  .catch(err => console.error('FluxGate Error:', err));`;
   };
   const getOutputCode = () => {
     if (!result) return '';
     if (endpoint === 'proxy') return result.contents || '';
     const { contents, ...display } = result;
-    if (endpoint === 'text') return JSON.stringify({ text: result.text, status: result.status }, null, 2);
-    if (endpoint === 'images') return JSON.stringify({ images: result.images, status: result.status }, null, 2);
-    if (endpoint === 'links') return JSON.stringify({ links: result.links, status: result.status }, null, 2);
-    if (endpoint === 'videos') return JSON.stringify({ videos: result.videos, status: result.status }, null, 2);
     return JSON.stringify(display, null, 2);
   };
   return (
-    <div className="w-full bg-slate-900/30 border border-white/10 rounded-xl overflow-hidden shadow-2xl">
+    <div className="w-full bg-slate-900/30 border border-white/10 rounded-xl overflow-hidden shadow-2xl transition-all duration-500">
       <div className="p-6 md:p-8 space-y-6 border-b border-white/5 bg-slate-900/40">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-end">
           <div className="lg:col-span-4 space-y-2">
@@ -121,54 +132,53 @@ fetch(apiUrl.toString())
             </div>
           </div>
           <div className="lg:col-span-3 space-y-2">
-            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">Endpoint Path</label>
+            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">Endpoint Mode</label>
             <Select value={endpoint} onValueChange={(v) => setEndpoint(v as PlaygroundEndpoint)}>
               <SelectTrigger className="bg-slate-950 border-white/10 h-12 font-mono text-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="proxy">/api/proxy (Raw)</SelectItem>
-                <SelectItem value="json">/api/json (Full)</SelectItem>
-                <SelectItem value="text">/api/text (Text)</SelectItem>
-                <SelectItem value="images">/api/images (Images)</SelectItem>
-                <SelectItem value="videos">/api/videos (Videos)</SelectItem>
-                <SelectItem value="links">/api/links (Links)</SelectItem>
-                <SelectItem value="class">/api/class (Selector)</SelectItem>
-                <SelectItem value="id">/api/id (Selector)</SelectItem>
+                <SelectItem value="proxy">Raw Streaming</SelectItem>
+                <SelectItem value="json">Full Metadata</SelectItem>
+                <SelectItem value="text">Clean Text</SelectItem>
+                <SelectItem value="images">Image Assets</SelectItem>
+                <SelectItem value="videos">Video Assets</SelectItem>
+                <SelectItem value="links">Link Graph</SelectItem>
+                <SelectItem value="class">Class Selector</SelectItem>
+                <SelectItem value="id">ID Selector</SelectItem>
               </SelectContent>
             </Select>
           </div>
           {(endpoint === 'class' || endpoint === 'id') && (
-            <div className="lg:col-span-2 space-y-2">
+            <div className="lg:col-span-2 space-y-2 animate-in fade-in slide-in-from-left-2 duration-300">
               <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">
-                {endpoint === 'class' ? 'Class Name' : 'Element ID'}
+                {endpoint === 'class' ? 'CSS Class' : 'Element ID'}
               </label>
               <div className="relative">
                 <MousePointer2 className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500" />
-                <Input value={selector} onChange={(e) => setSelector(e.target.value)} placeholder={endpoint === 'class' ? "content-body" : "main-header"} className="bg-slate-950 border-white/10 h-12 pl-9" />
+                <Input value={selector} onChange={(e) => setSelector(e.target.value)} placeholder={endpoint === 'class' ? "article-content" : "main"} className="bg-slate-950 border-white/10 h-12 pl-9" />
               </div>
             </div>
           )}
           <div className={cn("space-y-2 flex gap-2 items-end", (endpoint === 'class' || endpoint === 'id') ? "lg:col-span-3" : "lg:col-span-5")}>
-            <Button onClick={handleTest} disabled={loading} className="flex-1 bg-indigo-600 hover:bg-indigo-700 h-12 font-bold shadow-lg shadow-indigo-500/20 active:scale-[0.98] transition-transform">
+            <Button onClick={handleTest} disabled={loading} className="flex-1 bg-indigo-600 hover:bg-indigo-700 h-12 font-bold shadow-lg shadow-indigo-500/20 active:scale-[0.98] transition-all">
               {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Zap className="w-4 h-4 mr-2 fill-current" />}
-              {loading ? 'Processing...' : 'Execute'}
+              {loading ? 'Fetching...' : 'Proxy Request'}
             </Button>
-            <Button 
-              variant="outline" 
-              size="icon" 
-              className="h-12 w-12 border-white/10 bg-slate-950 hover:bg-white/5" 
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-12 w-12 border-white/10 bg-slate-950 hover:bg-white/5"
               onClick={handleCopyLink}
-              title="Copy direct API link"
+              title="Copy endpoint URL"
             >
               {copiedLink ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
             </Button>
             <a href={getFullApiUrl()} target="_blank" rel="noreferrer">
-              <Button 
-                variant="outline" 
-                size="icon" 
+              <Button
+                variant="outline"
+                size="icon"
                 className="h-12 w-12 border-white/10 bg-slate-950 hover:bg-white/5"
-                title="Open in new tab"
               >
                 <ExternalLink className="w-4 h-4" />
               </Button>
@@ -178,35 +188,47 @@ fetch(apiUrl.toString())
       </div>
       <div className="p-6 bg-slate-950/50">
         <Tabs defaultValue="output" className="w-full">
-          <TabsList className="bg-slate-900/80 border border-white/5 mb-6 p-1">
-            <TabsTrigger value="output" className="px-6 py-2 data-[state=active]:bg-indigo-500/20 data-[state=active]:text-indigo-400">Response</TabsTrigger>
-            <TabsTrigger value="code" className="px-6 py-2 data-[state=active]:bg-indigo-500/20 data-[state=active]:text-indigo-400">API Snippet</TabsTrigger>
-          </TabsList>
+          <div className="flex items-center justify-between mb-6">
+            <TabsList className="bg-slate-900/80 border border-white/5 p-1">
+              <TabsTrigger value="output" className="px-6 py-2 data-[state=active]:bg-indigo-500/20 data-[state=active]:text-indigo-400">Response</TabsTrigger>
+              <TabsTrigger value="code" className="px-6 py-2 data-[state=active]:bg-indigo-500/20 data-[state=active]:text-indigo-400">Snippet</TabsTrigger>
+            </TabsList>
+            {result && (
+              <Button variant="ghost" size="sm" onClick={handleCopyJson} className="text-slate-500 hover:text-indigo-400 gap-2">
+                {copiedJson ? <Check className="w-3 h-3" /> : <Download className="w-3 h-3" />}
+                <span className="text-[10px] font-bold uppercase tracking-widest hidden sm:inline">Copy JSON</span>
+              </Button>
+            )}
+          </div>
           <TabsContent value="output" className="min-h-[400px] outline-none">
             {loading ? (
               <div className="flex flex-col items-center justify-center h-[400px] text-slate-500">
-                <Loader2 className="w-10 h-10 animate-spin mb-4 text-indigo-500" />
-                <p className="text-sm font-medium">Processing at the Edge...</p>
+                <div className="relative">
+                  <Loader2 className="w-12 h-12 animate-spin text-indigo-500 mb-4" />
+                  <div className="absolute inset-0 bg-indigo-500/20 blur-xl animate-pulse" />
+                </div>
+                <p className="text-sm font-medium animate-pulse">Routing through Cloudflare Edge...</p>
               </div>
             ) : result ? (
-              <div className="space-y-6">
-                <div className="flex flex-wrap gap-2 md:gap-3">
+              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                <div className="flex flex-wrap gap-2">
                   <Badge label="Endpoint" val={`/api/${endpoint}`} />
                   <Badge label="Status" val={result.status.http_code} variant={result.status.http_code >= 400 ? 'error' : 'success'} />
-                  <Badge label="Latency" val={`${result.status.response_time_ms}ms`} />
+                  <Badge label="Edge Latency" val={`${result.status.response_time_ms}ms`} />
+                  <Badge label="Type" val={result.status.content_type.split(';')[0]} />
                 </div>
                 <CodeBlock language={endpoint === 'proxy' ? 'html' : 'json'} code={getOutputCode()} />
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center h-[400px] text-slate-600 border-2 border-dashed border-white/5 rounded-xl">
-                <Terminal className="w-10 h-10 opacity-20 mb-4" />
-                <p className="text-sm font-medium">Enter a URL and click Execute to test</p>
+                <Terminal className="w-12 h-12 opacity-10 mb-4" />
+                <p className="text-sm font-medium opacity-40">Ready to proxy. Paste a URL to begin.</p>
               </div>
             )}
           </TabsContent>
           <TabsContent value="code" className="outline-none">
             <div className="space-y-4">
-              <p className="text-sm text-slate-400">Integrate this FluxGate endpoint into your application:</p>
+              <p className="text-xs font-medium text-slate-500 uppercase tracking-widest px-1">Production Integration</p>
               <CodeBlock language="javascript" code={getCodeSnippet()} />
             </div>
           </TabsContent>
@@ -222,8 +244,8 @@ function Badge({ label, val, variant = 'default' }: { label: string, val: string
     error: "bg-red-500/10 border-red-500/20 text-red-400"
   };
   return (
-    <div className={cn("px-2 md:px-3 py-1 border rounded-md flex items-center gap-1.5 md:gap-2 max-w-full overflow-hidden", styles[variant])}>
-      <span className="text-[9px] md:text-[10px] font-bold opacity-60 uppercase tracking-tighter shrink-0">{label}</span>
+    <div className={cn("px-3 py-1.5 border rounded-md flex items-center gap-2 max-w-full overflow-hidden transition-colors", styles[variant])}>
+      <span className="text-[9px] font-bold opacity-60 uppercase tracking-widest shrink-0">{label}</span>
       <span className="text-xs font-mono font-bold truncate">{val}</span>
     </div>
   );

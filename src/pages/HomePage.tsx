@@ -1,97 +1,107 @@
 import React from 'react';
-import { Zap, Shield, Filter, Database, Github, Sparkles, Cpu, Terminal, ExternalLink, Globe, FileText, ImageIcon, Link as LinkIcon } from 'lucide-react';
+import { Zap, Shield, Filter, Database, Github, Sparkles, Cpu, Terminal, ExternalLink, Globe, FileText, Link as LinkIcon, MousePointer2 } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { ProxyPlayground } from '@/components/ProxyPlayground';
 import { Toaster } from '@/components/ui/sonner';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 export function HomePage() {
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
   const demoTarget = 'https://en.wikipedia.org/wiki/Cloudflare';
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-50 font-sans bg-grid-minimal">
+    <div className="min-h-screen bg-slate-950 text-slate-50 font-sans bg-grid-minimal selection:bg-indigo-500/30">
       <ThemeToggle />
       <Toaster richColors position="top-center" />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <header className="h-20 flex items-center justify-between border-b border-white/5">
-          <div className="flex items-center gap-2">
-            <Zap className="w-6 h-6 text-indigo-500 fill-indigo-500" />
+          <div className="flex items-center gap-2 group cursor-pointer">
+            <div className="relative">
+              <Zap className="w-6 h-6 text-indigo-500 fill-indigo-500 group-hover:scale-110 transition-transform" />
+              <div className="absolute inset-0 bg-indigo-500/20 blur-lg group-hover:bg-indigo-500/40 transition-all" />
+            </div>
             <span className="text-xl font-bold tracking-tight">FluxGate</span>
           </div>
           <div className="flex items-center gap-6">
-            <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-slate-400">
+            <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-400">
               <a href="#playground" className="hover:text-white transition-colors">Playground</a>
               <Link to="/docs" className="hover:text-white transition-colors">Documentation</Link>
+              <a href="#features" className="hover:text-white transition-colors">Features</a>
             </nav>
-            <a href="https://github.com" target="_blank" rel="noreferrer" className="text-slate-400 hover:text-white">
+            <a href="https://github.com" target="_blank" rel="noreferrer" className="text-slate-400 hover:text-white transition-all hover:scale-110">
               <Github className="w-5 h-5" />
             </a>
           </div>
         </header>
-        <main className="py-12 md:py-20 lg:py-24 space-y-24">
-          <section className="text-center space-y-6 max-w-4xl mx-auto">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-xs font-semibold text-indigo-400">
-              <Sparkles className="w-3 h-3" />
-              <span>Edge-First Path-Based API</span>
+        <main className="py-12 md:py-20 lg:py-24 space-y-32">
+          {/* Hero Section */}
+          <section className="text-center space-y-8 max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-8 duration-1000">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-xs font-bold text-indigo-400 tracking-wide uppercase">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Edge-First Path-Based Extraction</span>
             </div>
-            <h1 className="text-4xl md:text-6xl font-bold tracking-tight leading-tight">
-              Modern CORS Proxying. <br />
-              <span className="text-indigo-500 text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">Simplified Routing.</span>
+            <h1 className="text-5xl md:text-7xl font-extrabold tracking-tighter leading-[1.05]">
+              CORS Bypassed. <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-indigo-400 animate-shimmer bg-[length:200%_auto]">Data Extracted.</span>
             </h1>
-            <p className="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto font-normal leading-relaxed">
-              Bypass restrictions with dedicated path-based endpoints. From raw streaming passthrough to intelligent JSON extraction, all at the edge.
+            <p className="text-xl md:text-2xl text-slate-400 max-w-2xl mx-auto font-normal leading-relaxed">
+              Bypass restrictions with dedicated edge endpoints. From raw streaming to intelligent selector-based extraction.
             </p>
-            <div className="flex justify-center gap-4 pt-4">
+            <div className="flex flex-col sm:flex-row justify-center gap-4 pt-6">
               <a href="#playground">
-                <Button className="bg-indigo-600 hover:bg-indigo-700 h-12 px-8 rounded-md font-semibold gap-2">
-                  <Terminal className="w-4 h-4" /> Try Playground
+                <Button className="bg-indigo-600 hover:bg-indigo-700 h-14 px-10 rounded-xl font-bold gap-3 text-lg shadow-xl shadow-indigo-500/20 active:scale-95 transition-all animate-pulse hover:animate-none">
+                  <Terminal className="w-5 h-5" /> Try Playground
                 </Button>
               </a>
               <Link to="/docs">
-                <Button variant="outline" className="h-12 px-8 rounded-md border-white/10 bg-white/5 font-semibold">
-                  API Docs
+                <Button variant="outline" className="h-14 px-10 rounded-xl border-white/10 bg-white/5 font-bold text-lg hover:bg-white/10 transition-all">
+                  View API Docs
                 </Button>
               </Link>
             </div>
           </section>
-          <section id="quick-demos" className="space-y-8">
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-              <div className="space-y-1">
-                <h2 className="text-2xl font-bold">Quick Demos</h2>
-                <p className="text-slate-500 text-sm">See the engine work in real-time with one click.</p>
-              </div>
+          {/* Quick Demos */}
+          <section id="quick-demos" className="space-y-10">
+            <div className="flex flex-col items-center text-center space-y-2">
+              <h2 className="text-3xl font-bold tracking-tight">One-Click Demos</h2>
+              <p className="text-slate-500 text-lg">Instant results from our production-grade edge nodes.</p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <DemoLink icon={<Globe />} label="Raw HTML Proxy" path={`/api/proxy?url=${demoTarget}`} color="text-blue-400" />
-              <DemoLink icon={<Database />} label="JSON Metadata" path={`/api/json?url=${demoTarget}`} color="text-indigo-400" />
-              <DemoLink icon={<FileText />} label="Clean Text" path={`/api/text?url=${demoTarget}`} color="text-emerald-400" />
-              <DemoLink icon={<LinkIcon />} label="Extracted Links" path={`/api/links?url=${demoTarget}`} color="text-purple-400" />
+              <DemoLink icon={<Globe />} label="Raw HTML Proxy" path={`/api/proxy?url=${encodeURIComponent(demoTarget)}`} color="text-blue-400" />
+              <DemoLink icon={<Database />} label="Metadata JSON" path={`/api/json?url=${encodeURIComponent(demoTarget)}`} color="text-indigo-400" />
+              <DemoLink icon={<MousePointer2 />} label="Selector Extraction" path={`/api/class?url=${encodeURIComponent(demoTarget)}&class=mw-body-content`} color="text-pink-400" />
+              <DemoLink icon={<FileText />} label="Readability Text" path={`/api/text?url=${encodeURIComponent(demoTarget)}`} color="text-emerald-400" />
             </div>
           </section>
-          <section id="playground" className="space-y-10 scroll-mt-24">
-            <div className="text-center space-y-2">
-              <h2 className="text-3xl font-bold">Endpoint Playground</h2>
-              <p className="text-slate-500">Select a path and see the FluxGate engine in action.</p>
+          {/* Main Playground */}
+          <section id="playground" className="space-y-12 scroll-mt-24">
+            <div className="text-center space-y-3">
+              <h2 className="text-4xl font-bold tracking-tight">Interactive Playground</h2>
+              <p className="text-slate-500 text-lg">Test every endpoint with your own target URLs.</p>
             </div>
             <ProxyPlayground />
           </section>
+          {/* Features */}
           <section id="features" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <FeatureCard icon={<Cpu />} title="Path-Based Routing" desc="Dedicated endpoints like /api/text and /api/json for better DX." />
-            <FeatureCard icon={<Filter />} title="Edge Extraction" desc="High-speed HTMLRewriter targeting specific CSS selectors." />
-            <FeatureCard icon={<Database />} title="Zero Buffering" desc="/api/proxy provides a direct streaming pipe with zero overhead." />
-            <FeatureCard icon={<Shield />} title="Header Sanitizer" desc="Strips cookies and tracking headers from the upstream origin." />
+            <FeatureCard icon={<Cpu />} title="Smart Routing" desc="Dedicated paths like /api/text and /api/images for clean response formats." />
+            <FeatureCard icon={<Filter />} title="Edge Rewriting" desc="Uses Cloudflare HTMLRewriter to parse and modify DOM streams instantly." />
+            <FeatureCard icon={<Database />} title="Zero Latency" desc="Direct streaming passthrough ensures assets load as fast as origin." />
+            <FeatureCard icon={<Shield />} title="Safety First" desc="Automatically strips sensitive headers and cookies for anonymous proxying." />
           </section>
         </main>
-        <footer className="border-t border-white/5 py-12 mt-20 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-slate-500">
-          <div className="flex items-center gap-2">
-            <Zap className="w-4 h-4 text-indigo-500" />
-            <span className="font-bold text-slate-300">FluxGate</span>
+        <footer className="border-t border-white/5 py-16 mt-32 flex flex-col md:flex-row justify-between items-center gap-8 text-sm text-slate-500">
+          <div className="flex flex-col items-center md:items-start gap-3">
+            <div className="flex items-center gap-2">
+              <Zap className="w-5 h-5 text-indigo-500" />
+              <span className="font-bold text-slate-300 text-lg">FluxGate</span>
+            </div>
+            <p>© 2025 FluxGate Engine. Edge-First Architecture. v2.1</p>
           </div>
-          <p>© 2025 FluxGate Engine. V2.1 Path-Based.</p>
-          <div className="flex gap-6">
-            <Link to="/docs" className="hover:text-white">Docs</Link>
-            <a href="https://github.com" className="hover:text-white">GitHub</a>
+          <div className="flex gap-12 font-medium">
+            <Link to="/docs" className="hover:text-white transition-colors">Documentation</Link>
+            <a href="https://github.com" className="hover:text-white transition-colors">Source Code</a>
+            <a href="#" className="hover:text-white transition-colors">Status</a>
           </div>
         </footer>
       </div>
@@ -101,28 +111,31 @@ export function HomePage() {
 function DemoLink({ icon, label, path, color }: { icon: React.ReactNode, label: string, path: string, color: string }) {
   const fullUrl = `${window.location.origin}${path}`;
   return (
-    <a 
-      href={fullUrl} 
-      target="_blank" 
+    <a
+      href={fullUrl}
+      target="_blank"
       rel="noopener noreferrer"
-      className="group flex items-center justify-between p-4 bg-slate-900/40 border border-white/5 rounded-lg hover:border-indigo-500/30 hover:bg-slate-900/60 transition-all"
+      className="group flex items-center justify-between p-5 bg-slate-900/40 border border-white/5 rounded-xl hover:border-indigo-500/40 hover:bg-slate-900/60 transition-all duration-300 hover:shadow-xl hover:shadow-indigo-500/5"
     >
-      <div className="flex items-center gap-3">
-        <div className={color}>{icon}</div>
-        <span className="text-sm font-medium text-slate-300 group-hover:text-white transition-colors">{label}</span>
+      <div className="flex items-center gap-4">
+        <div className={cn("p-2 rounded-lg bg-white/5 group-hover:scale-110 transition-transform duration-300", color)}>
+          {React.cloneElement(icon as React.ReactElement, { className: 'w-5 h-5' })}
+        </div>
+        <span className="font-bold text-slate-300 group-hover:text-white transition-colors">{label}</span>
       </div>
-      <ExternalLink className="w-3.5 h-3.5 text-slate-600 group-hover:text-indigo-400 transition-colors" />
+      <ExternalLink className="w-4 h-4 text-slate-600 group-hover:text-indigo-400 transition-colors" />
     </a>
   );
 }
 function FeatureCard({ icon, title, desc }: { icon: React.ReactNode, title: string, desc: string }) {
   return (
-    <Card className="bg-slate-900/50 border-white/5 p-6 hover:border-white/10 transition-colors group">
-      <div className="text-indigo-500 mb-4 group-hover:scale-110 transition-transform duration-300">
-        {React.cloneElement(icon as React.ReactElement, { className: 'w-6 h-6' })}
+    <Card className="bg-slate-900/50 border-white/5 p-8 hover:border-white/10 transition-all duration-500 group relative overflow-hidden">
+      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-indigo-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+      <div className="text-indigo-500 mb-6 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-500">
+        {React.cloneElement(icon as React.ReactElement, { className: 'w-8 h-8' })}
       </div>
-      <h3 className="text-lg font-bold mb-2">{title}</h3>
-      <p className="text-sm text-slate-500 leading-relaxed">{desc}</p>
+      <h3 className="text-xl font-bold mb-3 tracking-tight">{title}</h3>
+      <p className="text-slate-500 leading-relaxed font-medium">{desc}</p>
     </Card>
   );
 }
