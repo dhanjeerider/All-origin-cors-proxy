@@ -1,10 +1,7 @@
-import React, { useState, useCallback } from 'react';
-import { Check, Copy, Terminal } from 'lucide-react';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import React, { useState } from 'react';
+import { Check, Copy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { toast } from 'sonner';
 interface CodeBlockProps {
   code: string;
   language?: string;
@@ -12,57 +9,28 @@ interface CodeBlockProps {
 }
 export function CodeBlock({ code, language = 'javascript', className }: CodeBlockProps) {
   const [copied, setCopied] = useState(false);
-  const handleCopy = useCallback(async () => {
-    if (!navigator.clipboard) {
-      toast.error('Clipboard API not available');
-      return;
-    }
-    try {
-      await navigator.clipboard.writeText(code);
-      setCopied(true);
-      toast.success('Copied to clipboard');
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      toast.error('Failed to copy');
-    }
-  }, [code]);
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(code);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
   return (
-    <div className={cn("relative rounded-lg overflow-hidden border border-white/10 bg-slate-950 flex flex-col", className)}>
-      <div className="flex items-center justify-between px-4 py-2 border-b border-white/10 bg-slate-900/80 backdrop-blur-sm sticky top-0 z-10">
-        <div className="flex items-center gap-2">
-          <Terminal className="w-3.5 h-3.5 text-slate-500" />
-          <span className="text-[10px] font-bold font-mono text-slate-500 uppercase tracking-widest">{language}</span>
-        </div>
+    <div className={cn("relative group rounded-lg overflow-hidden border border-white/10 bg-slate-900/50 backdrop-blur-sm", className)}>
+      <div className="flex items-center justify-between px-4 py-2 border-b border-white/5 bg-white/5">
+        <span className="text-2xs font-mono text-muted-foreground uppercase tracking-wider">{language}</span>
         <Button
           variant="ghost"
           size="icon"
-          className="h-7 w-7 text-slate-500 hover:text-white hover:bg-white/5 transition-all"
+          className="h-7 w-7 text-muted-foreground hover:text-foreground"
           onClick={handleCopy}
-          aria-label="Copy code"
         >
-          {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
+          {copied ? <Check className="h-3 w-3 text-green-400" /> : <Copy className="h-3 w-3" />}
         </Button>
       </div>
-      <div className="text-sm font-mono overflow-auto max-h-[450px] scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
-        <SyntaxHighlighter
-          language={language}
-          style={atomDark}
-          customStyle={{
-            margin: 0,
-            padding: '1.25rem',
-            background: 'transparent',
-            fontSize: '0.85rem',
-            lineHeight: '1.7',
-            fontFamily: '"JetBrains Mono", monospace',
-          }}
-          codeTagProps={{
-            style: {
-              fontFamily: 'inherit',
-            }
-          }}
-        >
-          {code}
-        </SyntaxHighlighter>
+      <div className="p-4 overflow-x-auto custom-scrollbar">
+        <pre className="text-sm font-mono text-slate-300 leading-relaxed">
+          <code>{code}</code>
+        </pre>
       </div>
     </div>
   );
