@@ -23,8 +23,8 @@ export function CodeBlock({ code, language = 'javascript', className }: CodeBloc
     }
   };
   return (
-    <div className={cn("relative rounded-lg overflow-hidden border border-white/10 bg-slate-950", className)}>
-      <div className="flex items-center justify-between px-4 py-2 border-b border-white/10 bg-slate-900/50">
+    <div className={cn("relative rounded-lg overflow-hidden border border-white/10 bg-slate-950 flex flex-col", className)}>
+      <div className="flex items-center justify-between px-4 py-2 border-b border-white/10 bg-slate-900/80 backdrop-blur-sm sticky top-0 z-10">
         <div className="flex items-center gap-2">
           <Terminal className="w-3.5 h-3.5 text-slate-500" />
           <span className="text-[10px] font-bold font-mono text-slate-500 uppercase tracking-widest">{language}</span>
@@ -32,22 +32,29 @@ export function CodeBlock({ code, language = 'javascript', className }: CodeBloc
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8 text-slate-500 hover:text-white"
+          className="h-7 w-7 text-slate-500 hover:text-white hover:bg-white/5 transition-all"
           onClick={handleCopy}
+          aria-label="Copy code"
         >
           {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
         </Button>
       </div>
-      <div className="text-sm font-mono overflow-auto max-h-[400px]">
+      <div className="text-sm font-mono overflow-auto max-h-[450px] custom-scrollbar">
         <SyntaxHighlighter
           language={language}
           style={atomDark}
           customStyle={{
             margin: 0,
-            padding: '1rem',
+            padding: '1.25rem',
             background: 'transparent',
-            fontSize: '0.8rem',
-            lineHeight: '1.6',
+            fontSize: '0.85rem',
+            lineHeight: '1.7',
+            fontFamily: '"JetBrains Mono", monospace',
+          }}
+          codeTagProps={{
+            style: {
+              fontFamily: 'inherit',
+            }
           }}
         >
           {code}

@@ -8,7 +8,6 @@ const CORS_HEADERS = {
 };
 const USER_AGENT = "FluxGate/2.0 (Cloudflare Worker; High-Performance Streaming)";
 export function userRoutes(app: Hono<{ Bindings: Env }>) {
-    // Stats endpoint removed for performance
     app.get('/api/proxy', async (c) => {
         const urlParam = c.req.query('url');
         const format = c.req.query('format') as ProxyFormat | undefined;
@@ -29,17 +28,18 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
                 headers: { "User-Agent": USER_AGENT },
                 redirect: 'follow'
             });
+            const newHeaders = new Headers(response.headers);
+            Object.entries(CORS_HEADERS).forEach(([k, v]) => newHeaders.set(k, v));
+            newHeaders.set("X-Proxied-By", "FluxGate/2.0");
             // If format is not specified or set to html, provide a transparent streaming response
             if (!format || format === 'html') {
-                const newHeaders = new Headers(response.headers);
-                Object.entries(CORS_HEADERS).forEach(([k, v]) => newHeaders.set(k, v));
-                newHeaders.set("X-Proxied-By", "FluxGate/2.0-Streaming");
-                return new Response(response.body, { 
-                    status: response.status, 
-                    headers: newHeaders 
+                newHeaders.set("X-Proxy-Mode", "Streaming");
+                return new Response(response.body, {
+                    status: response.status,
+                    headers: newHeaders
                 });
             }
-            // Otherwise, read body and perform extraction logic
+            // Otherwise, perform extraction logic
             const contentType = response.headers.get("content-type") || "";
             const result: ProxyResponse = {
                 url: targetUrl.toString(),
@@ -57,7 +57,6 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
             };
             const rawBody = await response.text();
             result.contents = rawBody;
-            // Simple extraction only for text/html
             if (contentType.includes("text/html")) {
                 const images = new Set<string>();
                 const links = new Set<string>();
@@ -69,19 +68,37 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
                     .on('img', {
                         element(e) {
                             const src = e.getAttribute('src');
-                            if (src) try { images.add(new URL(src, targetUrl).href); } catch {}
+                            if (src) {
+                                try {
+                                    images.add(new URL(src, targetUrl).href);
+                                } catch {
+                                    /* Ignore malformed image URLs */
+                                }
+                            }
                         }
                     })
                     .on('a', {
                         element(e) {
                             const href = e.getAttribute('href');
-                            if (href && !href.startsWith('#')) try { links.add(new URL(href, targetUrl).href); } catch {}
+                            if (href && !href.startsWith('#')) {
+                                try {
+                                    links.add(new URL(href, targetUrl).href);
+                                } catch {
+                                    /* Ignore malformed links */
+                                }
+                            }
                         }
                     })
                     .on('video, source', {
                         element(e) {
                             const src = e.getAttribute('src');
-                            if (src) try { videos.add(new URL(src, targetUrl).href); } catch {}
+                            if (src) {
+                                try {
+                                    videos.add(new URL(src, targetUrl).href);
+                                } catch {
+                                    /* Ignore malformed video sources */
+                                }
+                            }
                         }
                     });
                 if (format === 'class' && className) {
@@ -101,6 +118,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
                         }
                     });
                 }
+                // Consume the stream to trigger extraction
                 await rewriter.transform(new Response(rawBody)).text();
                 result.title = titleText.replace(/\s+/g, ' ').trim();
                 result.images = Array.from(images);

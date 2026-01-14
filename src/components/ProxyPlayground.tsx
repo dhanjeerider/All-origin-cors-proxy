@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Send, Loader2, Globe, Image as ImageIcon, Link as LinkIcon, Terminal, Hash, MousePointer2 } from 'lucide-react';
+import { Send, Loader2, Globe, Terminal, MousePointer2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -25,7 +25,7 @@ export function ProxyPlayground() {
     }
     setLoading(true);
     setResult(null);
-    const startTime = Date.now();
+    const startTimestamp = performance.now();
     try {
       const params = new URLSearchParams({ url });
       if (format !== 'raw') {
@@ -36,15 +36,18 @@ export function ProxyPlayground() {
       }
       const res = await fetch(`/api/proxy?${params.toString()}`);
       const contentType = res.headers.get('content-type') || '';
+      const clientLatency = Math.round(performance.now() - startTimestamp);
       if (contentType.includes('application/json')) {
         const data = await res.json() as ApiResponse<ProxyResponse>;
         if (data.success && data.data) {
-          setResult(data.data);
+          setResult({
+            ...data.data,
+            status: { ...data.data.status, response_time_ms: clientLatency }
+          });
         } else {
           toast.error(data.error || 'Failed to fetch');
         }
       } else {
-        // Handle raw streaming response for the UI preview
         const text = await res.text();
         setResult({
           url,
@@ -54,7 +57,7 @@ export function ProxyPlayground() {
             url,
             content_type: contentType,
             http_code: res.status,
-            response_time_ms: Date.now() - startTime
+            response_time_ms: clientLatency
           }
         });
       }
@@ -64,17 +67,24 @@ export function ProxyPlayground() {
       setLoading(false);
     }
   };
-  const codeSnippet = `// Default streaming passthrough
-fetch('/api/proxy?url=${encodeURIComponent(url)}')
-  .then(res => res.text())
-  .then(console.log);`;
+  const getCodeSnippet = () => {
+    const encodedUrl = encodeURIComponent(url);
+    const baseUrl = window.location.origin;
+    if (format === 'raw') {
+      return `// Raw streaming proxy\nfetch('${baseUrl}/api/proxy?url=${encodedUrl}')\n  .then(res => res.text())\n  .then(data => console.log("Proxied content:", data));`;
+    }
+    const selectorParam = (format === 'class' || format === 'id') ? `&${format}=${selector}` : '';
+    return `// Extraction mode: ${format}\nfetch('${baseUrl}/api/proxy?url=${encodedUrl}&format=${format}${selectorParam}')\n  .then(res => res.json())\n  .then(json => console.log("Extracted data:", json.data));`;
+  };
   const getOutputCode = () => {
     if (!result) return '';
-    if (result.format === 'html' || result.contents && !result.text && !result.images?.length) {
+    if (result.format === 'html' || (result.contents && !result.text && !result.images?.length && !result.links?.length)) {
        return result.contents || '';
     }
     if (result.format === 'text') return result.text || '';
-    return JSON.stringify(result, null, 2);
+    // Deep copy and clean for display
+    const { contents, ...displayResult } = result;
+    return JSON.stringify(displayResult, null, 2);
   };
   const getOutputLanguage = () => {
     if (result?.status.content_type.includes('html')) return 'html';
@@ -113,8 +123,8 @@ fetch('/api/proxy?url=${encodeURIComponent(url)}')
               </SelectContent>
             </Select>
           </div>
-          <div className={cn("transition-all duration-300 space-y-2", format === 'class' ? "lg:col-span-2 opacity-100" : "lg:col-span-0 w-0 opacity-0 overflow-hidden hidden")}>
-            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">Class Name</label>
+          <div className={cn("transition-all duration-300 space-y-2", (format === 'class' || format === 'id') ? "lg:col-span-2 opacity-100" : "lg:col-span-0 w-0 opacity-0 overflow-hidden hidden")}>
+            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">Selector</label>
             <div className="relative">
               <MousePointer2 className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500" />
               <Input
@@ -125,8 +135,8 @@ fetch('/api/proxy?url=${encodeURIComponent(url)}')
               />
             </div>
           </div>
-          <div className={cn("space-y-2", format === 'class' ? "lg:col-span-2" : "lg:col-span-4")}>
-            <Button onClick={handleTest} disabled={loading} className="bg-indigo-600 hover:bg-indigo-700 h-12 w-full font-bold shadow-lg shadow-indigo-500/20">
+          <div className={cn("space-y-2", (format === 'class' || format === 'id') ? "lg:col-span-2" : "lg:col-span-4")}>
+            <Button onClick={handleTest} disabled={loading} className="bg-indigo-600 hover:bg-indigo-700 h-12 w-full font-bold shadow-lg shadow-indigo-500/20 active:scale-[0.98] transition-transform">
               {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Send className="w-4 h-4 mr-2" />}
               {loading ? 'Fetching...' : 'Proxy Request'}
             </Button>
@@ -135,11 +145,11 @@ fetch('/api/proxy?url=${encodeURIComponent(url)}')
       </div>
       <div className="p-6 bg-slate-950/50">
         <Tabs defaultValue="output" className="w-full">
-          <TabsList className="bg-slate-900 border border-white/5 mb-6">
-            <TabsTrigger value="output" className="px-6">Response View</TabsTrigger>
-            <TabsTrigger value="code" className="px-6">Implementation</TabsTrigger>
+          <TabsList className="bg-slate-900/80 border border-white/5 mb-6 p-1">
+            <TabsTrigger value="output" className="px-6 py-2 data-[state=active]:bg-indigo-500/20 data-[state=active]:text-indigo-400">Response View</TabsTrigger>
+            <TabsTrigger value="code" className="px-6 py-2 data-[state=active]:bg-indigo-500/20 data-[state=active]:text-indigo-400">Implementation</TabsTrigger>
           </TabsList>
-          <TabsContent value="output" className="min-h-[400px]">
+          <TabsContent value="output" className="min-h-[400px] outline-none">
             {loading ? (
               <div className="flex flex-col items-center justify-center h-[400px] text-slate-500">
                 <Loader2 className="w-10 h-10 animate-spin mb-4 text-indigo-500" />
@@ -155,8 +165,11 @@ fetch('/api/proxy?url=${encodeURIComponent(url)}')
                 {result.images && result.images.length > 0 && format === 'images' ? (
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
                     {result.images.slice(0, 15).map((img, i) => (
-                      <div key={i} className="aspect-square bg-slate-900 border border-white/10 rounded-lg overflow-hidden">
-                        <img src={img} alt="" className="w-full h-full object-cover" />
+                      <div key={i} className="aspect-square bg-slate-900 border border-white/10 rounded-lg overflow-hidden group relative">
+                        <img src={img} alt="" className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                           <a href={img} target="_blank" rel="noreferrer" className="text-[10px] font-bold text-white bg-indigo-500 px-2 py-1 rounded">VIEW</a>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -174,10 +187,10 @@ fetch('/api/proxy?url=${encodeURIComponent(url)}')
               </div>
             )}
           </TabsContent>
-          <TabsContent value="code">
+          <TabsContent value="code" className="outline-none">
             <div className="space-y-4">
-              <p className="text-sm text-slate-400">Minimal integration for your app:</p>
-              <CodeBlock language="javascript" code={codeSnippet} />
+              <p className="text-sm text-slate-400">Integrate this request into your application logic:</p>
+              <CodeBlock language="javascript" code={getCodeSnippet()} />
             </div>
           </TabsContent>
         </Tabs>
@@ -192,8 +205,8 @@ function Badge({ label, val, variant = 'default' }: { label: string, val: string
     error: "bg-red-500/10 border-red-500/20 text-red-400"
   };
   return (
-    <div className={cn("px-3 py-1 border rounded-md flex items-center gap-2", styles[variant])}>
-      <span className="text-[10px] font-bold opacity-50 uppercase tracking-tighter">{label}</span>
+    <div className={cn("px-3 py-1 border rounded-md flex items-center gap-2 transition-colors", styles[variant])}>
+      <span className="text-[10px] font-bold opacity-60 uppercase tracking-tighter">{label}</span>
       <span className="text-xs font-mono font-bold">{val}</span>
     </div>
   );
