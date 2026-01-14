@@ -41,19 +41,22 @@ async function handleExtraction(url: string, format: ProxyFormat, className?: st
       .on('img', {
         element(e) {
           const src = e.getAttribute('src');
-          if (src) try { images.add(new URL(src, targetUrl).href); } catch {}
+          // If src is invalid or absolute path resolution fails, we ignore it to prevent crawler crashes
+          if (src) try { images.add(new URL(src, targetUrl).href); } catch { /* ignore invalid urls */ }
         }
       })
       .on('a', {
         element(e) {
           const href = e.getAttribute('href');
-          if (href && !href.startsWith('#')) try { links.add(new URL(href, targetUrl).href); } catch {}
+          // Link resolution can fail for complex or non-standard protocol strings
+          if (href && !href.startsWith('#')) try { links.add(new URL(href, targetUrl).href); } catch { /* ignore invalid links */ }
         }
       })
       .on('video, source', {
         element(e) {
           const src = e.getAttribute('src');
-          if (src) try { videos.add(new URL(src, targetUrl).href); } catch {}
+          // Multimedia sources are often relative or dynamically generated, skipping failures
+          if (src) try { videos.add(new URL(src, targetUrl).href); } catch { /* ignore invalid sources */ }
         }
       });
     if (format === 'class' && className) {
@@ -96,7 +99,6 @@ async function handleExtraction(url: string, format: ProxyFormat, className?: st
   return { success: true, data: format === 'json' ? result : rest };
 }
 export function userRoutes(app: Hono<{ Bindings: Env }>) {
-  // 1. Raw Transparent Proxy (Highest Performance)
   app.get('/api/proxy', async (c) => {
     const url = c.req.query('url');
     if (!url) return c.json({ success: false, error: 'URL required' }, 400);
@@ -111,7 +113,6 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
       return c.json({ success: false, error: 'Fetch failed' }, 502);
     }
   });
-  // 2. Specialized Path-Based Endpoints
   const formats: ProxyFormat[] = ['json', 'text', 'images', 'links', 'videos', 'class', 'id'];
   formats.forEach(f => {
     app.get(`/api/${f}`, async (c) => {

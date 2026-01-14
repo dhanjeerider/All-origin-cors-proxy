@@ -71,7 +71,7 @@ export function ProxyPlayground() {
     <div className="w-full bg-slate-900/30 border border-white/10 rounded-xl overflow-hidden shadow-2xl">
       <div className="p-6 md:p-8 space-y-6 border-b border-white/5 bg-slate-900/40">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-end">
-          <div className="lg:col-span-5 space-y-2">
+          <div className="lg:col-span-4 space-y-2">
             <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">Target URL</label>
             <div className="relative">
               <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
@@ -93,24 +93,29 @@ export function ProxyPlayground() {
                 <SelectItem value="proxy">/api/proxy (Raw)</SelectItem>
                 <SelectItem value="json">/api/json (Full)</SelectItem>
                 <SelectItem value="text">/api/text (Text)</SelectItem>
-                <SelectItem value="images">/api/images (Media)</SelectItem>
+                <SelectItem value="images">/api/images (Images)</SelectItem>
+                <SelectItem value="videos">/api/videos (Videos)</SelectItem>
+                <SelectItem value="links">/api/links (Links)</SelectItem>
                 <SelectItem value="class">/api/class (Selector)</SelectItem>
+                <SelectItem value="id">/api/id (Selector)</SelectItem>
               </SelectContent>
             </Select>
           </div>
-          { (endpoint === 'class' || endpoint === 'id') && (
+          {(endpoint === 'class' || endpoint === 'id') && (
             <div className="lg:col-span-2 space-y-2">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">Selector</label>
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">
+                {endpoint === 'class' ? 'Class Name' : 'Element ID'}
+              </label>
               <div className="relative">
                 <MousePointer2 className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500" />
-                <Input value={selector} onChange={(e) => setSelector(e.target.value)} placeholder="class-name" className="bg-slate-950 border-white/10 h-12 pl-9" />
+                <Input value={selector} onChange={(e) => setSelector(e.target.value)} placeholder={endpoint === 'class' ? "content-body" : "main-header"} className="bg-slate-950 border-white/10 h-12 pl-9" />
               </div>
             </div>
           )}
-          <div className={cn("space-y-2", (endpoint === 'class' || endpoint === 'id') ? "lg:col-span-2" : "lg:col-span-4")}>
+          <div className={cn("space-y-2", (endpoint === 'class' || endpoint === 'id') ? "lg:col-span-3" : "lg:col-span-5")}>
             <Button onClick={handleTest} disabled={loading} className="bg-indigo-600 hover:bg-indigo-700 h-12 w-full font-bold shadow-lg shadow-indigo-500/20 active:scale-[0.98] transition-transform">
               {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Zap className="w-4 h-4 mr-2 fill-current" />}
-              {loading ? 'Routing...' : 'Execute Path'}
+              {loading ? 'Processing...' : 'Execute Request'}
             </Button>
           </div>
         </div>
@@ -139,13 +144,13 @@ export function ProxyPlayground() {
             ) : (
               <div className="flex flex-col items-center justify-center h-[400px] text-slate-600 border-2 border-dashed border-white/5 rounded-xl">
                 <Terminal className="w-10 h-10 opacity-20 mb-4" />
-                <p className="text-sm font-medium">Choose a path and target to start</p>
+                <p className="text-sm font-medium">Choose an endpoint and target URL to begin testing</p>
               </div>
             )}
           </TabsContent>
           <TabsContent value="code" className="outline-none">
             <div className="space-y-4">
-              <p className="text-sm text-slate-400">Integrate this FluxGate path into your codebase:</p>
+              <p className="text-sm text-slate-400">Integrate this FluxGate endpoint into your client application:</p>
               <CodeBlock language="javascript" code={getCodeSnippet()} />
             </div>
           </TabsContent>

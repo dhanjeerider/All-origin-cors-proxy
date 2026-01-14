@@ -23,88 +23,108 @@ export function DocsPage() {
               <h1 className="text-4xl md:text-5xl font-bold tracking-tight">API Documentation</h1>
             </div>
             <p className="text-xl text-slate-400 max-w-3xl leading-relaxed">
-              FluxGate v2.1 uses high-performance, path-based routing. Choose the endpoint that matches your required output format.
+              FluxGate v2.1 provides high-performance, path-based routing. Each endpoint is optimized for specific data structures and speed.
             </p>
           </div>
         </header>
         <section id="endpoints" className="space-y-10">
           <h2 className="text-2xl font-bold flex items-center gap-2">
-            <ChevronRight className="w-5 h-5 text-indigo-500" /> Primary Endpoints
+            <ChevronRight className="w-5 h-5 text-indigo-500" /> Core API Endpoints
           </h2>
           <div className="grid gap-8">
             <div className="space-y-4">
-              <h3 className="text-lg font-bold text-indigo-400">/api/proxy — Raw Passthrough</h3>
-              <p className="text-slate-400">The fastest way to bypass CORS. Returns the raw response body from the target URL with zero server-side processing.</p>
-              <CodeBlock language="javascript" code={`fetch(\`${origin}/api/proxy?url=https://example.com\`)`} />
+              <h3 className="text-lg font-bold text-indigo-400">/api/proxy — Transparent Passthrough</h3>
+              <p className="text-slate-400">Directly pipes the upstream response with permissive CORS headers. Ideal for media, downloads, or existing REST APIs.</p>
+              <CodeBlock language="javascript" code={`fetch(\`${origin}/api/proxy?url=https://api.example.com/data\`)`} />
             </div>
             <div className="space-y-4">
-              <h3 className="text-lg font-bold text-indigo-400">/api/json — Full Extract</h3>
-              <p className="text-slate-400">Returns a structured JSON response containing metadata, images, links, and page title.</p>
+              <h3 className="text-lg font-bold text-indigo-400">/api/json — Metadata & Enrichment</h3>
+              <p className="text-slate-400">Returns parsed metadata including page title, description, and asset arrays (images, videos, links).</p>
               <CodeBlock language="bash" code={`curl "${origin}/api/json?url=https://wikipedia.org"`} />
             </div>
             <div className="space-y-4">
-              <h3 className="text-lg font-bold text-indigo-400">/api/text — Content Extraction</h3>
-              <p className="text-slate-400">Strips scripts and styles, returning only the readable text content of the target page.</p>
-              <CodeBlock language="javascript" code={`fetch(\`${origin}/api/text?url=https://blog.com/post\`)`} />
+              <h3 className="text-lg font-bold text-indigo-400">/api/text — Readability Engine</h3>
+              <p className="text-slate-400">Extracts clean text content from any HTML page by removing scripts, styles, and boilerplate markup.</p>
+              <CodeBlock language="javascript" code={`fetch(\`${origin}/api/text?url=https://news-site.com/article\`)`} />
             </div>
           </div>
         </section>
         <section id="selectors" className="space-y-6">
           <h2 className="text-2xl font-bold flex items-center gap-2">
-            <MousePointer2 className="w-5 h-5 text-indigo-500" /> Fragment Extraction
+            <MousePointer2 className="w-5 h-5 text-indigo-500" /> Precise Fragment Extraction
           </h2>
-          <p className="text-slate-400">Extract specific portions of the DOM by providing a class or ID selector.</p>
+          <p className="text-slate-400">Target specific DOM nodes using CSS class names or unique IDs. Perfect for lightweight scraping.</p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="p-4 bg-slate-900/50 border border-white/10 rounded-lg space-y-2">
-              <p className="text-xs font-bold text-slate-500 uppercase">CSS Class</p>
-              <code className="text-indigo-400 text-sm">/api/class?url=...&class=my-div</code>
+              <p className="text-xs font-bold text-slate-500 uppercase">Class Selector</p>
+              <code className="text-indigo-400 text-sm">/api/class?url=...&class=article-body</code>
             </div>
             <div className="p-4 bg-slate-900/50 border border-white/10 rounded-lg space-y-2">
-              <p className="text-xs font-bold text-slate-500 uppercase">Element ID</p>
-              <code className="text-indigo-400 text-sm">/api/id?url=...&id=header-01</code>
+              <p className="text-xs font-bold text-slate-500 uppercase">ID Selector</p>
+              <code className="text-indigo-400 text-sm">/api/id?url=...&id=main-container</code>
             </div>
           </div>
         </section>
         <section id="reference" className="space-y-6">
           <h2 className="text-2xl font-bold flex items-center gap-2">
-            <Settings2 className="w-5 h-5 text-indigo-500" /> Reference Table
+            <Settings2 className="w-5 h-5 text-indigo-500" /> Full Routing Reference
           </h2>
           <div className="overflow-x-auto border border-white/10 rounded-xl bg-slate-900/20">
             <table className="w-full text-left text-sm border-collapse">
               <thead className="bg-white/5 text-slate-300 font-bold uppercase text-[10px] tracking-widest">
                 <tr>
-                  <th className="px-6 py-4">Endpoint Path</th>
-                  <th className="px-6 py-4">Response Type</th>
-                  <th className="px-6 py-4">Use Case</th>
+                  <th className="px-6 py-4">Path</th>
+                  <th className="px-6 py-4">Format</th>
+                  <th className="px-6 py-4">Primary Use Case</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5 text-slate-400">
                 <tr>
                   <td className="px-6 py-4 font-mono text-indigo-400 font-bold">/api/proxy</td>
-                  <td className="px-6 py-4 italic">Streaming (Raw)</td>
-                  <td className="px-6 py-4">Direct resource loading, APIs, media streams.</td>
+                  <td className="px-6 py-4 italic">Raw Stream</td>
+                  <td className="px-6 py-4">Asset bypass & transparent API proxying.</td>
                 </tr>
                 <tr>
                   <td className="px-6 py-4 font-mono text-indigo-400 font-bold">/api/json</td>
-                  <td className="px-6 py-4">JSON (Full)</td>
-                  <td className="px-6 py-4">Scraping, metadata previews, enrichment.</td>
+                  <td className="px-6 py-4">JSON Object</td>
+                  <td className="px-6 py-4">URL unfurling and full metadata extraction.</td>
+                </tr>
+                <tr>
+                  <td className="px-6 py-4 font-mono text-indigo-400 font-bold">/api/text</td>
+                  <td className="px-6 py-4">JSON (Text)</td>
+                  <td className="px-6 py-4">LLM data ingestion and content reading.</td>
                 </tr>
                 <tr>
                   <td className="px-6 py-4 font-mono text-indigo-400 font-bold">/api/images</td>
-                  <td className="px-6 py-4">JSON (Images)</td>
-                  <td className="px-6 py-4">Gallery generation, asset discovery.</td>
+                  <td className="px-6 py-4">JSON (Array)</td>
+                  <td className="px-6 py-4">Image discovery and gallery builders.</td>
+                </tr>
+                <tr>
+                  <td className="px-6 py-4 font-mono text-indigo-400 font-bold">/api/videos</td>
+                  <td className="px-6 py-4">JSON (Array)</td>
+                  <td className="px-6 py-4">Media asset indexing.</td>
                 </tr>
                 <tr>
                   <td className="px-6 py-4 font-mono text-indigo-400 font-bold">/api/links</td>
-                  <td className="px-6 py-4">JSON (Links)</td>
-                  <td className="px-6 py-4">Crawler development, site mapping.</td>
+                  <td className="px-6 py-4">JSON (Array)</td>
+                  <td className="px-6 py-4">Quick site mapping and link checking.</td>
+                </tr>
+                <tr>
+                  <td className="px-6 py-4 font-mono text-indigo-400 font-bold">/api/class</td>
+                  <td className="px-6 py-4">JSON Object</td>
+                  <td className="px-6 py-4">Targeted scraping by CSS class.</td>
+                </tr>
+                <tr>
+                  <td className="px-6 py-4 font-mono text-indigo-400 font-bold">/api/id</td>
+                  <td className="px-6 py-4">JSON Object</td>
+                  <td className="px-6 py-4">Targeted scraping by Element ID.</td>
                 </tr>
               </tbody>
             </table>
           </div>
         </section>
         <footer className="pt-12 border-t border-white/5 text-center text-slate-600 text-xs tracking-widest uppercase">
-          FluxGate Engine &bull; Path-Based Routing &bull; v2.1
+          FluxGate Engine &bull; Edge-First Architecture &bull; v2.1
         </footer>
       </div>
     </div>
