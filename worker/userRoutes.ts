@@ -19,11 +19,13 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
         }
     });
     app.get('/api/proxy', async (c) => {
-        const urlParam = c.req.query('url'); // Hono already decodes the query parameter
+        const urlParam = c.req.query('url');
         const format = (c.req.query('format') || 'json') as ProxyFormat;
         const className = c.req.query('class');
         const idName = c.req.query('id');
-        const delay = parseInt(c.req.query('delay') || '0');
+        const delayInput = parseInt(c.req.query('delay') || '0');
+        // Safety check for delay
+        const delay = Math.max(0, Math.min(delayInput, 10));
         if (!urlParam) {
             return c.json({ success: false, error: 'URL parameter is required' }, 400);
         }
@@ -33,11 +35,11 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
         } catch (e) {
             return c.json({ success: false, error: 'Invalid URL provided' }, 400);
         }
+        // Notify DO to increment stats
         const stub = c.env.GlobalDurableObject.get(c.env.GlobalDurableObject.idFromName("global"));
         await stub.incrementStats(format);
         if (delay > 0) {
-            const wait = Math.min(delay, 10) * 1000;
-            await new Promise(resolve => setTimeout(resolve, wait));
+            await new Promise(resolve => setTimeout(resolve, delay * 1000));
         }
         const startTime = Date.now();
         try {
@@ -54,7 +56,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
             }
             const accept = c.req.header('Accept') || '';
             const contentType = response.headers.get("content-type") || "";
-            // Handle transparent proxying for HTML requests if requested
+            // Handle transparent proxying for HTML requests if format=html and client accepts html
             if (format === 'html' && accept.includes('text/html')) {
                 const newHeaders = new Headers(response.headers);
                 Object.entries(CORS_HEADERS).forEach(([k, v]) => newHeaders.set(k, v));
@@ -75,9 +77,9 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
                 videos: [],
                 extractedElements: []
             };
+            const rawBody = await response.text();
+            result.contents = rawBody; // Always include raw contents for reference in JSON response
             if (!contentType.includes("text/html")) {
-                const body = await response.text();
-                result.contents = body;
                 return c.json({ success: true, data: result });
             }
             const images = new Set<string>();
@@ -128,8 +130,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
                     }
                 });
             }
-            const rawBody = await response.text();
-            // Perform the transform and consume as text to ensure execution completion
+            // Perform the transform and consume
             await rewriter.transform(new Response(rawBody)).text();
             result.title = titleText.replace(/\s+/g, ' ').trim();
             result.images = Array.from(images);
@@ -142,8 +143,6 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
                                     .replace(/<[^>]*>?/gm, ' ')
                                     .replace(/\s+/g, ' ')
                                     .trim();
-            } else {
-                result.contents = rawBody;
             }
             return c.json({ success: true, data: result } satisfies ApiResponse<ProxyResponse>);
         } catch (err) {
