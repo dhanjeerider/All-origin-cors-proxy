@@ -85,7 +85,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
                     element(e) {
                         const src = e.getAttribute('src');
                         if (src) {
-                            try { images.add(new URL(src, targetUrl).href); } catch {}
+                            try { images.add(new URL(src, targetUrl).href); } catch (err) { /* Ignore invalid URLs */ }
                         }
                     }
                 })
@@ -93,7 +93,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
                     element(e) {
                         const href = e.getAttribute('href');
                         if (href && !href.startsWith('#')) {
-                            try { links.add(new URL(href, targetUrl).href); } catch {}
+                            try { links.add(new URL(href, targetUrl).href); } catch (err) { /* Ignore invalid URLs */ }
                         }
                     }
                 })
@@ -101,7 +101,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
                     element(e) {
                         const src = e.getAttribute('src');
                         if (src) {
-                            try { videos.add(new URL(src, targetUrl).href); } catch {}
+                            try { videos.add(new URL(src, targetUrl).href); } catch (err) { /* Ignore invalid URLs */ }
                         }
                     }
                 });
@@ -123,7 +123,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
                 });
             }
             const rawBody = await response.text();
-            const transformedResponse = await rewriter.transform(new Response(rawBody)).text();
+            await rewriter.transform(new Response(rawBody)).text();
             result.title = title.trim();
             result.images = Array.from(images);
             result.links = Array.from(links);

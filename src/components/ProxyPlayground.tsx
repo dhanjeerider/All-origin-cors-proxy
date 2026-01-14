@@ -58,9 +58,16 @@ export function ProxyPlayground() {
       setCountdown(0);
     }
   };
-  const codeSnippet = `// FluxGate Advanced Extraction
-const target = encodeURIComponent('${url}');
-const api = \`https://fluxgate.pages.dev/api/proxy?url=\${target}&format=${format}${delay > 0 ? `&delay=${delay}` : ''}${selector ? `&${format === 'class' ? 'class' : 'id'}=${selector}` : ''}\`;
+  const codeSnippet = `/**
+ * FluxGate API Integration Example
+ * Always encode the target URL to ensure proper parsing.
+ */
+const api = new URL('/api/proxy', window.location.origin);
+const target = '${url}';
+api.searchParams.set('url', target);
+api.searchParams.set('format', '${format}');
+${delay > 0 ? `api.searchParams.set('delay', '${delay}');` : ''}
+${selector ? `api.searchParams.set('${format}', '${selector}');` : ''}
 fetch(api)
   .then(res => res.json())
   .then(data => {
@@ -168,7 +175,15 @@ fetch(api)
                     <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
                       {result.images.slice(0, 24).map((img, i) => (
                         <div key={i} className="aspect-square rounded-xl overflow-hidden border border-white/5 bg-slate-900 group relative shadow-lg">
-                          <img src={img} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300" alt="" loading="lazy" />
+                          <img 
+                            src={img} 
+                            className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300" 
+                            alt="" 
+                            loading="lazy"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = 'https://placehold.co/400x400/0f172a/38bdf8?text=Blocked+by+CORS';
+                            }}
+                          />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2">
                              <span className="text-[8px] font-mono text-white truncate w-full">{img.split('/').pop()}</span>
                           </div>

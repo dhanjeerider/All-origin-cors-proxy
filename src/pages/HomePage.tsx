@@ -1,9 +1,11 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Zap, Shield, Globe, Layers, Github, Sparkles, Filter, Database, Terminal, Cpu } from 'lucide-react';
+import { Zap, Shield, Globe, Layers, Github, Sparkles, Filter, Database, Terminal, Cpu, ArrowRight, BookOpen } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { ProxyPlayground } from '@/components/ProxyPlayground';
 import { Toaster } from '@/components/ui/sonner';
+import { Link } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
 import type { ApiResponse, ProxyStats } from '@shared/types';
 export function HomePage() {
   const [stats, setStats] = useState<ProxyStats | null>(null);
@@ -50,8 +52,7 @@ export function HomePage() {
         <div className="flex items-center gap-6">
           <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-400">
             <a href="#playground" className="hover:text-white transition-colors">Playground</a>
-            <a href="#features" className="hover:text-white transition-colors">Features</a>
-            <a href="#docs" className="hover:text-white transition-colors">Docs</a>
+            <Link to="/docs" className="hover:text-white transition-colors">Documentation</Link>
           </nav>
           <a href="https://github.com" target="_blank" rel="noreferrer" className="p-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all">
             <Github className="w-5 h-5 text-white" />
@@ -61,7 +62,7 @@ export function HomePage() {
       <main className="relative z-10 max-w-7xl mx-auto px-6 py-16 md:py-32 space-y-40">
         <section className="text-center space-y-10">
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }} 
+            initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-xs font-bold text-indigo-400 backdrop-blur-md uppercase tracking-widest"
           >
@@ -69,8 +70,8 @@ export function HomePage() {
             <span>Next-Gen Extraction Engine</span>
           </motion.div>
           <motion.h1
-            initial={{ opacity: 0, y: 30 }} 
-            animate={{ opacity: 1, y: 0 }} 
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
             className="text-6xl md:text-9xl font-black tracking-tight leading-[0.85]"
           >
@@ -78,8 +79,8 @@ export function HomePage() {
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-400 via-indigo-500 to-purple-500">Instant Data.</span>
           </motion.h1>
           <motion.p
-            initial={{ opacity: 0, y: 20 }} 
-            animate={{ opacity: 1, y: 0 }} 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
             className="text-lg md:text-2xl text-slate-400 max-w-3xl mx-auto leading-relaxed font-light"
           >
@@ -87,23 +88,23 @@ export function HomePage() {
           </motion.p>
         </section>
         <section className="flex flex-wrap justify-center gap-4">
-          <TickerCard 
-            label="Requests Proxied" 
-            value={stats?.totalRequests.toLocaleString() || '---'} 
-            sub="Total global traffic" 
-            color="text-sky-400" 
+          <TickerCard
+            label="Requests Proxied"
+            value={stats?.totalRequests.toLocaleString() || '---'}
+            sub="Total global traffic"
+            color="text-sky-400"
           />
-          <TickerCard 
-            label="Popular Format" 
-            value={topFormat} 
-            sub="Most requested mode" 
-            color="text-indigo-400" 
+          <TickerCard
+            label="Popular Format"
+            value={topFormat}
+            sub="Most requested mode"
+            color="text-indigo-400"
           />
-          <TickerCard 
-            label="Avg. Edge Latency" 
-            value="~14ms" 
-            sub="Global response time" 
-            color="text-purple-400" 
+          <TickerCard
+            label="Avg. Edge Latency"
+            value="~14ms"
+            sub="Global response time"
+            color="text-purple-400"
           />
         </section>
         <section id="playground" className="space-y-16">
@@ -114,25 +115,26 @@ export function HomePage() {
           <ProxyPlayground />
         </section>
         <section id="features" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <FeatureCard 
-            icon={<Filter className="text-sky-400" />} 
-            title="Smart Selectors" 
-            desc="Extract data from any CSS class or ID. Get clean JSON arrays of nested content instantly." 
+          <FeatureCard
+            icon={<Filter className="text-sky-400" />}
+            title="Smart Selectors"
+            desc="Extract data from any CSS class or ID. Get clean JSON arrays of nested content instantly."
           />
-          <FeatureCard 
-            icon={<Database className="text-indigo-400" />} 
-            title="Media Scraping" 
-            desc="Auto-resolve relative URLs for images and videos into absolute, ready-to-use links." 
+          <FeatureCard
+            icon={<Database className="text-indigo-400" />}
+            title="Media Scraping"
+            desc="Auto-resolve relative URLs for images and videos into absolute, ready-to-use links."
           />
-          <FeatureCard 
-            icon={<Cpu className="text-purple-400" />} 
-            title="Lazy Processing" 
-            desc="Simulate user wait times with our 'Delay' feature to handle hydration-heavy sites." 
+          <FeatureCard
+            icon={<Cpu className="text-purple-400" />}
+            title="Lazy Processing"
+            desc="Simulate user wait times with our 'Delay' feature to handle hydration-heavy sites."
           />
-          <FeatureCard 
-            icon={<Terminal className="text-emerald-400" />} 
-            title="Binary Streaming" 
-            desc="Raw mode supports transparent binary streaming for images, PDFs, and assets." 
+          <FeatureCard
+            icon={<BookOpen className="text-emerald-400" />}
+            title="Full Documentation"
+            desc="Comprehensive guides for all 10 extraction formats and integration examples."
+            cta={<Link to="/docs"><Button variant="ghost" className="text-emerald-400 h-auto p-0 hover:bg-transparent group">Learn More <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" /></Button></Link>}
           />
         </section>
       </main>
@@ -151,7 +153,7 @@ export function HomePage() {
             <div className="space-y-4">
               <h4 className="text-white font-bold text-sm uppercase tracking-widest">Platform</h4>
               <ul className="text-slate-500 text-sm space-y-2">
-                <li><a href="#" className="hover:text-indigo-400">Documentation</a></li>
+                <li><Link to="/docs" className="hover:text-indigo-400">Documentation</Link></li>
                 <li><a href="#" className="hover:text-indigo-400">Edge Network</a></li>
                 <li><a href="#" className="hover:text-indigo-400">Status</a></li>
               </ul>
@@ -159,7 +161,7 @@ export function HomePage() {
             <div className="space-y-4">
               <h4 className="text-white font-bold text-sm uppercase tracking-widest">Community</h4>
               <ul className="text-slate-500 text-sm space-y-2">
-                <li><a href="#" className="hover:text-indigo-400">GitHub</a></li>
+                <li><a href="https://github.com" className="hover:text-indigo-400">GitHub</a></li>
                 <li><a href="#" className="hover:text-indigo-400">Discord</a></li>
                 <li><a href="#" className="hover:text-indigo-400">Twitter</a></li>
               </ul>
@@ -184,14 +186,15 @@ function TickerCard({ label, value, sub, color }: { label: string, value: string
     </div>
   );
 }
-function FeatureCard({ icon, title, desc }: { icon: React.ReactNode, title: string, desc: string }) {
+function FeatureCard({ icon, title, desc, cta }: { icon: React.ReactNode, title: string, desc: string, cta?: React.ReactNode }) {
   return (
     <div className="p-8 rounded-[2.5rem] bg-slate-900/50 border border-white/5 hover:border-indigo-500/30 transition-all hover:-translate-y-2 group">
       <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center mb-6 group-hover:bg-indigo-500/10 transition-colors">
         {React.isValidElement(icon) ? React.cloneElement(icon as React.ReactElement, { className: 'w-7 h-7' }) : icon}
       </div>
       <h3 className="text-xl font-bold mb-3">{title}</h3>
-      <p className="text-slate-500 text-sm leading-relaxed">{desc}</p>
+      <p className="text-slate-500 text-sm leading-relaxed mb-4">{desc}</p>
+      {cta}
     </div>
   );
 }

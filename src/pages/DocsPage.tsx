@@ -1,154 +1,148 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 import { CodeBlock } from '@/components/CodeBlock';
-import { Zap, ArrowLeft, Layout, MousePointer2, Settings2, ShieldCheck, ChevronRight, ExternalLink, Ghost, Clock, Shield } from 'lucide-react';
+import { Zap, ArrowLeft, Terminal, Globe, Layout, Shield, FileJson, Image as ImageIcon, Link as LinkIcon, Video, Type } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ThemeToggle';
 export function DocsPage() {
-  const origin = typeof window !== 'undefined' ? window.location.origin : '';
-  const demoTarget = 'https://en.wikipedia.org/wiki/Cloudflare';
+  const origin = window.location.origin;
+  const formats = [
+    { id: 'json', name: 'JSON Metadata', icon: <FileJson />, desc: 'Returns structured metadata including status, headers, and full body content.' },
+    { id: 'html', name: 'Raw HTML', icon: <Layout />, desc: 'Streams the original HTML with CORS headers injected. Useful for full-page rendering.' },
+    { id: 'text', name: 'Plain Text', icon: <Type />, desc: 'Strips all HTML tags, scripts, and styles to return human-readable text only.' },
+    { id: 'images', name: 'Image Gallery', icon: <ImageIcon />, desc: 'Automatically extracts and resolves all image sources into absolute URLs.' },
+    { id: 'links', name: 'Link List', icon: <LinkIcon />, desc: 'Parses all anchor tags and returns an array of unique absolute links.' },
+    { id: 'videos', name: 'Video Sources', icon: <Video />, desc: 'Finds all <video> and <source> tags to extract media paths.' },
+    { id: 'class', name: 'CSS Class', icon: <Layout />, desc: 'Extracts only the elements matching a specific CSS class name.' },
+    { id: 'id', name: 'Element ID', icon: <Layout />, desc: 'Finds and returns the element matching a specific DOM ID.' },
+  ];
+  const getExampleUrl = (f: string) => `${origin}/api/proxy?url=${encodeURIComponent('https://en.wikipedia.org/wiki/Main_Page')}&format=${f}`;
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-50 font-sans">
+    <div className="min-h-screen bg-slate-950 text-slate-50 selection:bg-indigo-500/30">
       <ThemeToggle />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="py-8 md:py-10 lg:py-12 space-y-20">
+        <div className="py-8 md:py-10 lg:py-12 space-y-16">
           <header className="space-y-6">
             <Link to="/">
-              <Button variant="ghost" className="text-slate-400 hover:text-white -ml-4">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Home
+              <Button variant="ghost" className="text-slate-400 hover:text-white group -ml-4">
+                <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
+                Back to Playground
               </Button>
             </Link>
-            <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                <Zap className="w-8 h-8 text-indigo-500" />
-                <h1 className="text-4xl md:text-5xl font-bold tracking-tight">API Documentation</h1>
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-sky-400 via-indigo-500 to-purple-600 flex items-center justify-center shadow-2xl shadow-indigo-500/40">
+                <Zap className="w-7 h-7 text-white" />
               </div>
-              <p className="text-xl text-slate-400 max-w-3xl leading-relaxed">
-                FluxGate v2.1 provides high-performance, path-based routing. Each endpoint is optimized for specific data structures and edge speed.
-              </p>
+              <h1 className="text-4xl md:text-5xl font-black tracking-tight">API Documentation</h1>
             </div>
           </header>
-          <section id="stealth" className="space-y-8">
-            <h2 className="text-2xl font-bold flex items-center gap-2">
-              <ShieldCheck className="w-5 h-5 text-indigo-500" /> Advanced Stealth Parameters
-            </h2>
-            <p className="text-slate-400 max-w-3xl">
-              All endpoints support these optional query parameters to help bypass bot detection and simulate organic traffic patterns.
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <StealthCard 
-                icon={<Ghost />} 
-                title="ua (User-Agent)" 
-                desc="Override or rotate the request browser identity. Defaults to a rotating set of 20+ modern profiles." 
-              />
-              <StealthCard 
-                icon={<Clock />} 
-                title="delay (Latency)" 
-                desc="Introduce a server-side wait (0-10,000ms) with ±200ms jitter to simulate human browsing speed." 
-              />
-              <StealthCard 
-                icon={<ExternalLink />} 
-                title="referer" 
-                desc="Spoof the source origin of the request to satisfy strict upstream referer-check policies." 
-              />
-            </div>
-            <div className="bg-indigo-500/5 border border-indigo-500/20 rounded-xl p-8 space-y-4">
-              <div className="flex items-center gap-2 text-indigo-400 font-bold">
-                <Shield className="w-5 h-5" />
-                <span>Best Practice: Detection Evasion</span>
-              </div>
-              <p className="text-sm text-slate-400 leading-relaxed">
-                For scraping sensitive targets, always use <code className="text-indigo-300">delay=500</code> and rotate your <code className="text-indigo-300">ua</code> strings. 
-                FluxGate automatically spoofs your IP address using random X-Forwarded-For headers on every request to prevent rate-limiting at the origin.
-              </p>
-            </div>
-          </section>
-          <section id="endpoints" className="space-y-10">
-            <h2 className="text-2xl font-bold flex items-center gap-2">
-              <ChevronRight className="w-5 h-5 text-indigo-500" /> Core API Endpoints
-            </h2>
-            <div className="grid gap-12">
-              <div className="space-y-4">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <h3 className="text-lg font-bold text-indigo-400">/api/proxy — Transparent Passthrough</h3>
-                  <a href={`${origin}/api/proxy?url=${demoTarget}`} target="_blank" rel="noreferrer">
-                    <Button size="sm" variant="secondary" className="gap-2 text-xs">
-                      <ExternalLink className="w-3.5 h-3.5" /> Try Live Demo
-                    </Button>
-                  </a>
+          <section className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+            <aside className="lg:col-span-3 space-y-8">
+              <nav className="sticky top-12 space-y-1">
+                <p className="px-3 text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Core API</p>
+                <a href="#quickstart" className="block px-3 py-2 rounded-lg text-slate-400 hover:bg-white/5 hover:text-white transition-colors">Quickstart</a>
+                <a href="#endpoint" className="block px-3 py-2 rounded-lg text-slate-400 hover:bg-white/5 hover:text-white transition-colors">Endpoints</a>
+                <a href="#formats" className="block px-3 py-2 rounded-lg text-slate-400 hover:bg-white/5 hover:text-white transition-colors">Response Formats</a>
+                <a href="#delay" className="block px-3 py-2 rounded-lg text-slate-400 hover:bg-white/5 hover:text-white transition-colors">Lazy Delays</a>
+              </nav>
+            </aside>
+            <div className="lg:col-span-9 space-y-24">
+              <section id="quickstart" className="space-y-6">
+                <h2 className="text-3xl font-bold flex items-center gap-3">
+                  <Terminal className="w-8 h-8 text-indigo-500" />
+                  Quickstart
+                </h2>
+                <p className="text-slate-400 leading-relaxed max-w-2xl">
+                  FluxGate allows you to fetch any resource from the web while automatically bypassing CORS. Simply prepend our endpoint to your target URL.
+                </p>
+                <div className="space-y-4">
+                  <p className="text-sm font-semibold text-slate-300">Basic Browser Usage:</p>
+                  <CodeBlock 
+                    language="javascript"
+                    code={`// Use URLSearchParams for safe encoding
+const api = new URL('${origin}/api/proxy');
+api.searchParams.set('url', 'https://example.com');
+api.searchParams.set('format', 'json');
+fetch(api)
+  .then(res => res.json())
+  .then(console.log);`}
+                  />
                 </div>
-                <p className="text-slate-400">Directly pipes the upstream response with permissive CORS headers.</p>
-                <CodeBlock
-                  language="javascript"
-                  code={`const url = new URL('${origin}/api/proxy');\nurl.searchParams.append('url', 'https://api.example.com/data');\nurl.searchParams.append('delay', '250');\n\nfetch(url.toString())\n  .then(res => res.blob());`}
-                />
-              </div>
-              <div className="space-y-4">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <h3 className="text-lg font-bold text-indigo-400">/api/json — Metadata & Enrichment</h3>
-                  <a href={`${origin}/api/json?url=${demoTarget}`} target="_blank" rel="noreferrer">
-                    <Button size="sm" variant="secondary" className="gap-2 text-xs">
-                      <ExternalLink className="w-3.5 h-3.5" /> Try Live Demo
-                    </Button>
-                  </a>
+              </section>
+              <section id="endpoint" className="space-y-8">
+                <div className="space-y-4">
+                  <h2 className="text-3xl font-bold">Base Endpoint</h2>
+                  <div className="p-4 bg-slate-900 border border-white/5 rounded-xl font-mono text-indigo-400 text-sm overflow-x-auto">
+                    GET {origin}/api/proxy?url=[encoded_url]&format=[mode]
+                  </div>
                 </div>
-                <p className="text-slate-400">Returns parsed metadata including page title and asset arrays.</p>
-                <CodeBlock
-                  language="bash"
-                  code={`curl "${origin}/api/json?url=https://wikipedia.org&ua=Mozilla/5.0&delay=100"`}
-                />
-              </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="p-6 bg-white/5 border border-white/10 rounded-2xl space-y-2">
+                    <span className="text-xs font-bold text-sky-400 uppercase">Parameter</span>
+                    <h3 className="font-bold text-white">url</h3>
+                    <p className="text-sm text-slate-500 leading-relaxed">The target URL you want to proxy. Must be <strong>URI Encoded</strong> to avoid parsing errors with query parameters.</p>
+                  </div>
+                  <div className="p-6 bg-white/5 border border-white/10 rounded-2xl space-y-2">
+                    <span className="text-xs font-bold text-indigo-400 uppercase">Parameter</span>
+                    <h3 className="font-bold text-white">format</h3>
+                    <p className="text-sm text-slate-500 leading-relaxed">Determines how the data is returned. Defaults to <code>json</code>. Supports 8 different modes.</p>
+                  </div>
+                </div>
+              </section>
+              <section id="formats" className="space-y-12">
+                <h2 className="text-3xl font-bold flex items-center gap-3">
+                  <Globe className="w-8 h-8 text-indigo-500" />
+                  Response Formats
+                </h2>
+                <div className="grid grid-cols-1 gap-8">
+                  {formats.map((f) => (
+                    <div key={f.id} className="glass rounded-3xl p-6 md:p-8 border-white/5 space-y-6">
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-indigo-400">
+                          {f.icon}
+                        </div>
+                        <div>
+                          <h3 className="text-xl font-bold">{f.name}</h3>
+                          <code className="text-xs text-slate-500">format={f.id}</code>
+                        </div>
+                      </div>
+                      <p className="text-slate-400 text-sm">{f.desc}</p>
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-slate-500 uppercase">Example CURL</span>
+                          <a href={getExampleUrl(f.id)} target="_blank" rel="noreferrer" className="text-xs text-indigo-400 hover:underline">Try in Browser</a>
+                        </div>
+                        <CodeBlock 
+                          language="bash"
+                          code={`curl "${origin}/api/proxy?url=https%3A%2F%2Fen.wikipedia.org%2Fwiki%2FMain_Page&format=${f.id}"`}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+              <section id="delay" className="space-y-6">
+                <h2 className="text-3xl font-bold flex items-center gap-3">
+                  <Shield className="w-8 h-8 text-indigo-500" />
+                  Lazy Delays
+                </h2>
+                <p className="text-slate-400 leading-relaxed">
+                  Some websites require time for server-side processing or hydration. Use the <code>delay</code> parameter to wait at the edge before fetching.
+                </p>
+                <div className="p-6 bg-indigo-500/5 border border-indigo-500/10 rounded-2xl space-y-4">
+                  <p className="text-sm font-mono text-indigo-300">GET /api/proxy?url=...&delay=5</p>
+                  <ul className="text-xs text-slate-500 space-y-1 list-disc list-inside">
+                    <li>Minimum: 0 seconds</li>
+                    <li>Maximum: 10 seconds</li>
+                    <li>Resolution: 1 second increments</li>
+                  </ul>
+                </div>
+              </section>
             </div>
           </section>
-          <section id="reference" className="space-y-6">
-            <h2 className="text-2xl font-bold flex items-center gap-2">
-              <Settings2 className="w-5 h-5 text-indigo-500" /> Full Routing Reference
-            </h2>
-            <div className="overflow-x-auto border border-white/10 rounded-xl bg-slate-900/20">
-              <table className="w-full text-left text-sm border-collapse">
-                <thead className="bg-white/5 text-slate-300 font-bold uppercase text-[10px] tracking-widest">
-                  <tr>
-                    <th className="px-6 py-4">Endpoint Path</th>
-                    <th className="px-6 py-4">Required Params</th>
-                    <th className="px-6 py-4">Optional Params</th>
-                    <th className="px-6 py-4">Format</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/5 text-slate-400">
-                  <ReferenceRow path="/api/proxy" required="url" optional="ua, delay, referer" format="Raw Stream" />
-                  <ReferenceRow path="/api/json" required="url" optional="ua, delay, referer" format="JSON Object" />
-                  <ReferenceRow path="/api/text" required="url" optional="ua, delay, referer" format="JSON (Text)" />
-                  <ReferenceRow path="/api/class" required="url, class" optional="ua, delay, referer" format="JSON (Array)" />
-                  <ReferenceRow path="/api/id" required="url, id" optional="ua, delay, referer" format="JSON (Object)" />
-                </tbody>
-              </table>
-            </div>
-          </section>
-          <footer className="pt-12 border-t border-white/5 text-center text-slate-600 text-xs tracking-widest uppercase">
-            FluxGate Engine &bull; Edge-First Architecture &bull; v2.1
-          </footer>
         </div>
       </div>
     </div>
-  );
-}
-function StealthCard({ icon, title, desc }: { icon: React.ReactNode, title: string, desc: string }) {
-  return (
-    <div className="p-6 bg-slate-900/40 border border-white/5 rounded-xl space-y-3">
-      <div className="text-indigo-400">{icon}</div>
-      <h3 className="font-bold text-slate-200">{title}</h3>
-      <p className="text-xs text-slate-500 leading-relaxed">{desc}</p>
-    </div>
-  );
-}
-function ReferenceRow({ path, required, optional, format }: { path: string, required: string, optional: string, format: string }) {
-  return (
-    <tr>
-      <td className="px-6 py-4 font-mono text-indigo-400 font-bold">{path}</td>
-      <td className="px-6 py-4 text-slate-300 font-mono text-xs">{required}</td>
-      <td className="px-6 py-4 text-slate-500 italic text-xs">{optional}</td>
-      <td className="px-6 py-4">{format}</td>
-    </tr>
   );
 }

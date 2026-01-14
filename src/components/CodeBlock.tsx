@@ -4,6 +4,7 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 interface CodeBlockProps {
   code: string;
   language?: string;
@@ -13,11 +14,29 @@ export function CodeBlock({ code, language = 'javascript', className }: CodeBloc
   const [copied, setCopied] = useState(false);
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(code);
+      // Robust clipboard implementation with fallback for non-secure contexts
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(code);
+      } else {
+        // Fallback for restricted environments
+        const textArea = document.createElement("textarea");
+        textArea.value = code;
+        textArea.style.position = "fixed";
+        textArea.style.left = "-999999px";
+        textArea.style.top = "-999999px";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        const successful = document.execCommand('copy');
+        textArea.remove();
+        if (!successful) throw new Error('execCommand copy failed');
+      }
       setCopied(true);
+      toast.success('Code copied to clipboard');
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
-      console.error('Failed to copy code:', err);
+      console.error('[CodeBlock] Failed to copy:', err);
+      toast.error('Failed to copy code. Please select and copy manually.');
     }
   };
   return (
