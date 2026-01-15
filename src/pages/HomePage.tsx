@@ -7,7 +7,6 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { motion } from 'framer-motion';
 export function HomePage() {
   const demoTarget = 'https://en.wikipedia.org/wiki/Cloudflare';
   return (
@@ -75,35 +74,35 @@ export function HomePage() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4 relative">
               <div className="hidden md:block absolute top-1/2 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-y-1/2 z-0" />
-              <LifecycleStep 
-                icon={<Share2 />} 
-                title="Client Request" 
-                desc="Your app hits a FluxGate endpoint with a target URL." 
-                delay={0}
+              <LifecycleStep
+                icon={<Share2 />}
+                title="Client Request"
+                desc="Your app hits a FluxGate endpoint with a target URL."
+                delayClass="delay-0"
               />
-              <LifecycleStep 
-                icon={<Lock />} 
-                title="Edge Guard" 
-                desc="Requests are sanitized and CORS headers are injected." 
-                delay={0.1}
+              <LifecycleStep
+                icon={<Lock />}
+                title="Edge Guard"
+                desc="Requests are sanitized and CORS headers are injected."
+                delayClass="delay-100"
               />
-              <LifecycleStep 
-                icon={<Globe />} 
-                title="Origin Fetch" 
-                desc="FluxGate fetches the target server-side (bypass CORS)." 
-                delay={0.2}
+              <LifecycleStep
+                icon={<Globe />}
+                title="Origin Fetch"
+                desc="FluxGate fetches the target server-side (bypass CORS)."
+                delayClass="delay-200"
               />
-              <LifecycleStep 
-                icon={<SearchCode />} 
-                title="DOM Extraction" 
-                desc="HTMLRewriter parses content in-flight at the edge." 
-                delay={0.3}
+              <LifecycleStep
+                icon={<SearchCode />}
+                title="DOM Extraction"
+                desc="HTMLRewriter parses content in-flight at the edge."
+                delayClass="delay-300"
               />
-              <LifecycleStep 
-                icon={<Database />} 
-                title="Clean Data" 
-                desc="Normalized JSON or Raw content is returned to you." 
-                delay={0.4}
+              <LifecycleStep
+                icon={<Database />}
+                title="Clean Data"
+                desc="Normalized JSON or Raw content is returned to you."
+                delayClass="delay-500"
               />
             </div>
           </section>
@@ -154,21 +153,21 @@ export function HomePage() {
     </div>
   );
 }
-function LifecycleStep({ icon, title, desc, delay }: { icon: React.ReactNode, title: string, desc: string, delay: number }) {
+function LifecycleStep({ icon, title, desc, delayClass }: { icon: React.ReactNode, title: string, desc: string, delayClass: string }) {
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.5, delay }}
-      className="relative z-10 flex flex-col items-center text-center p-6 bg-slate-900/50 border border-white/5 rounded-2xl backdrop-blur-sm group hover:border-indigo-500/20 transition-all"
+    <div
+      className={cn(
+        "relative z-10 flex flex-col items-center text-center p-6 bg-slate-900/50 border border-white/5 rounded-2xl backdrop-blur-sm group hover:border-indigo-500/20 transition-all",
+        "animate-in fade-in slide-in-from-bottom-4 duration-700 fill-mode-both",
+        delayClass
+      )}
     >
       <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center text-indigo-400 mb-4 group-hover:scale-110 group-hover:bg-indigo-500/10 transition-all">
         {React.cloneElement(icon as React.ReactElement, { className: 'w-6 h-6' })}
       </div>
       <h3 className="text-sm font-bold text-slate-200 mb-2 uppercase tracking-tight">{title}</h3>
       <p className="text-xs text-slate-500 leading-relaxed">{desc}</p>
-    </motion.div>
+    </div>
   );
 }
 function DemoLink({ icon, label, path, color }: { icon: React.ReactNode, label: string, path: string, color: string }) {

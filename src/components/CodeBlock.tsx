@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Check, Copy, Terminal } from 'lucide-react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
@@ -12,7 +12,11 @@ interface CodeBlockProps {
 }
 export function CodeBlock({ code, language = 'javascript', className }: CodeBlockProps) {
   const [copied, setCopied] = useState(false);
-  const handleCopy = async () => {
+  const handleCopy = useCallback(async () => {
+    if (!navigator.clipboard) {
+      toast.error('Clipboard API not available');
+      return;
+    }
     try {
       await navigator.clipboard.writeText(code);
       setCopied(true);
@@ -21,7 +25,7 @@ export function CodeBlock({ code, language = 'javascript', className }: CodeBloc
     } catch (err) {
       toast.error('Failed to copy');
     }
-  };
+  }, [code]);
   return (
     <div className={cn("relative rounded-lg overflow-hidden border border-white/10 bg-slate-950 flex flex-col", className)}>
       <div className="flex items-center justify-between px-4 py-2 border-b border-white/10 bg-slate-900/80 backdrop-blur-sm sticky top-0 z-10">
@@ -39,7 +43,7 @@ export function CodeBlock({ code, language = 'javascript', className }: CodeBloc
           {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
         </Button>
       </div>
-      <div className="text-sm font-mono overflow-auto max-h-[450px] custom-scrollbar">
+      <div className="text-sm font-mono overflow-auto max-h-[450px] scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
         <SyntaxHighlighter
           language={language}
           style={atomDark}

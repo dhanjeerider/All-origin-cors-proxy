@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Send, Loader2, Globe, Terminal, MousePointer2, Zap, Copy, ExternalLink, Check, Download, ChevronRight } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -36,13 +36,14 @@ export function ProxyPlayground() {
     }
     return () => clearInterval(interval);
   }, [loading]);
-  const getFullApiUrl = () => {
+  const getFullApiUrl = useCallback(() => {
     const origin = window.location.origin;
-    const params = new URLSearchParams({ url });
+    const params = new URLSearchParams();
+    params.append('url', url); // URLSearchParams handles encoding automatically
     if (endpoint === 'class' && selector) params.append('class', selector);
     if (endpoint === 'id' && selector) params.append('id', selector);
     return `${origin}/api/${endpoint}?${params.toString()}`;
-  };
+  }, [url, endpoint, selector]);
   const handleCopyLink = async () => {
     try {
       await navigator.clipboard.writeText(getFullApiUrl());
@@ -250,7 +251,7 @@ fetch(fluxGateUrl)
                 <div className="flex flex-wrap gap-2">
                   <Badge label="Endpoint" val={`/api/${endpoint}`} />
                   <Badge label="Status" val={result.status.http_code} variant={result.status.http_code >= 400 ? 'error' : 'success'} />
-                  <Badge label="Edge Latency" val={`${result.status.response_time_ms}ms`} />
+                  <Badge label="Latency" val={`${result.status.response_time_ms}ms`} />
                   <Badge label="Type" val={result.status.content_type.split(';')[0]} />
                 </div>
                 <CodeBlock language={endpoint === 'proxy' ? 'html' : 'json'} code={getOutputCode()} />
@@ -280,9 +281,9 @@ function Badge({ label, val, variant = 'default' }: { label: string, val: string
     error: "bg-red-500/10 border-red-500/20 text-red-400"
   };
   return (
-    <div className={cn("px-4 py-2 border rounded-md flex items-center gap-3 max-w-full overflow-hidden transition-colors", styles[variant])}>
+    <div className={cn("px-4 py-2 border rounded-md flex items-center gap-3 transition-colors", styles[variant])}>
       <span className="text-[9px] font-medium opacity-60 uppercase tracking-widest shrink-0">{label}</span>
-      <span className="text-xs font-mono font-bold truncate">{val}</span>
+      <span className="text-xs font-mono font-bold truncate max-w-[120px]">{val}</span>
     </div>
   );
 }
