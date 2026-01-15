@@ -127,7 +127,7 @@ async function handleExtraction(url: string, format: ProxyFormat, className?: st
     return { success: false, error: e instanceof Error ? e.message : 'Upstream fetch failed' };
   }
 }
-export function userRoutes(app: Hono<{ Bindings: Env }>) {
+export function userRoutesHandler(app: Hono<{ Bindings: Env }>) {
   app.use('/api/*', async (c, next) => {
     await next();
     c.res.headers.set("X-Proxied-By", "FluxGate/2.1");

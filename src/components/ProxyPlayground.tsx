@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Send, Loader2, Globe, Terminal, MousePointer2, Zap, Copy, ExternalLink, Check, Download } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Send, Loader2, Globe, Terminal, MousePointer2, Zap, Copy, ExternalLink, Check, Download, ChevronRight } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -9,14 +9,33 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import type { ApiResponse, ProxyResponse, ProxyFormat } from '@shared/types';
 type PlaygroundEndpoint = 'proxy' | ProxyFormat;
+const LOADING_STEPS = [
+  "Waking up edge node...",
+  "Routing request to closest POP...",
+  "Intercepting upstream headers...",
+  "Parsing DOM structures...",
+  "Applying extraction rules...",
+  "Streaming response back..."
+];
 export function ProxyPlayground() {
   const [url, setUrl] = useState('https://en.wikipedia.org/wiki/Cloudflare');
   const [endpoint, setEndpoint] = useState<PlaygroundEndpoint>('proxy');
   const [selector, setSelector] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loadingStep, setLoadingStep] = useState(0);
   const [result, setResult] = useState<ProxyResponse | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [copiedCurl, setCopiedCurl] = useState(false);
   const [copiedJson, setCopiedJson] = useState(false);
+  useEffect(() => {
+    let interval: number;
+    if (loading) {
+      interval = window.setInterval(() => {
+        setLoadingStep(prev => (prev + 1) % LOADING_STEPS.length);
+      }, 800);
+    }
+    return () => clearInterval(interval);
+  }, [loading]);
   const getFullApiUrl = () => {
     const origin = window.location.origin;
     const params = new URLSearchParams({ url });
@@ -32,6 +51,17 @@ export function ProxyPlayground() {
       setTimeout(() => setCopiedLink(false), 2000);
     } catch (err) {
       toast.error('Failed to copy');
+    }
+  };
+  const handleCopyCurl = async () => {
+    const curl = `curl "${getFullApiUrl()}"`;
+    try {
+      await navigator.clipboard.writeText(curl);
+      setCopiedCurl(true);
+      toast.success('cURL command copied');
+      setTimeout(() => setCopiedCurl(false), 2000);
+    } catch (err) {
+      toast.error('Failed to copy cURL');
     }
   };
   const handleCopyJson = async () => {
@@ -55,6 +85,7 @@ export function ProxyPlayground() {
       return;
     }
     setLoading(true);
+    setLoadingStep(0);
     setResult(null);
     const startTimestamp = performance.now();
     try {
@@ -165,24 +196,26 @@ fetch(fluxGateUrl)
               {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Zap className="w-4 h-4 mr-2 fill-current" />}
               {loading ? 'Fetching...' : 'Proxy Request'}
             </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-12 w-12 border-white/10 bg-slate-950 hover:bg-white/5"
-              onClick={handleCopyLink}
-              title="Copy endpoint URL"
-            >
-              {copiedLink ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
-            </Button>
-            <a href={getFullApiUrl()} target="_blank" rel="noreferrer">
+            <div className="flex gap-1.5">
               <Button
                 variant="outline"
                 size="icon"
                 className="h-12 w-12 border-white/10 bg-slate-950 hover:bg-white/5"
+                onClick={handleCopyLink}
+                title="Copy endpoint URL"
               >
-                <ExternalLink className="w-4 h-4" />
+                {copiedLink ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
               </Button>
-            </a>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-12 w-12 border-white/10 bg-slate-950 hover:bg-white/5"
+                onClick={handleCopyCurl}
+                title="Copy as cURL"
+              >
+                {copiedCurl ? <Check className="w-4 h-4 text-emerald-500" /> : <Terminal className="w-4 h-4" />}
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -203,11 +236,14 @@ fetch(fluxGateUrl)
           <TabsContent value="output" className="min-h-[400px] outline-none">
             {loading ? (
               <div className="flex flex-col items-center justify-center h-[400px] text-slate-500">
-                <div className="relative">
-                  <Loader2 className="w-12 h-12 animate-spin text-indigo-500 mb-4" />
+                <div className="relative mb-6">
+                  <Loader2 className="w-12 h-12 animate-spin text-indigo-500" />
                   <div className="absolute inset-0 bg-indigo-500/20 blur-xl animate-pulse" />
                 </div>
-                <p className="text-sm font-medium animate-pulse">Routing through Cloudflare Edge...</p>
+                <div className="flex items-center gap-2 font-mono text-xs uppercase tracking-widest animate-pulse">
+                  <ChevronRight className="w-3 h-3 text-indigo-400" />
+                  {LOADING_STEPS[loadingStep]}
+                </div>
               </div>
             ) : result ? (
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
@@ -244,8 +280,8 @@ function Badge({ label, val, variant = 'default' }: { label: string, val: string
     error: "bg-red-500/10 border-red-500/20 text-red-400"
   };
   return (
-    <div className={cn("px-3 py-1.5 border rounded-md flex items-center gap-2 max-w-full overflow-hidden transition-colors", styles[variant])}>
-      <span className="text-[9px] font-bold opacity-60 uppercase tracking-widest shrink-0">{label}</span>
+    <div className={cn("px-4 py-2 border rounded-md flex items-center gap-3 max-w-full overflow-hidden transition-colors", styles[variant])}>
+      <span className="text-[9px] font-medium opacity-60 uppercase tracking-widest shrink-0">{label}</span>
       <span className="text-xs font-mono font-bold truncate">{val}</span>
     </div>
   );
