@@ -21,7 +21,7 @@ async function handleExtraction(url: string, format: ProxyFormat, className?: st
   }
   try {
     const response = await fetch(targetUrl.toString(), {
-      headers: { 
+      headers: {
         "User-Agent": USER_AGENT,
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8"
       },
@@ -82,7 +82,6 @@ async function handleExtraction(url: string, format: ProxyFormat, className?: st
             if (src) try { videos.add(new URL(src, targetUrl).href); } catch { /* ignore */ }
           }
         });
-      // Handle selector-based extraction with text content capturing
       const selector = format === 'class' ? `.${className}` : format === 'id' ? `#${idName}` : null;
       if (selector) {
         let currentElement: ExtractedElement | null = null;
@@ -104,7 +103,7 @@ async function handleExtraction(url: string, format: ProxyFormat, className?: st
       await rewriter.transform(new Response(rawBody)).text();
       result.title = titleText.replace(/\s+/g, ' ').trim();
       result.meta = meta;
-      result.images = Array.from(images).slice(0, 50); // Cap for performance
+      result.images = Array.from(images).slice(0, 50);
       result.links = Array.from(links).slice(0, 100);
       result.videos = Array.from(videos);
       result.extractedElements = elements.map(el => ({
@@ -123,7 +122,6 @@ async function handleExtraction(url: string, format: ProxyFormat, className?: st
     }
     return { success: true, data: result };
   } catch (e) {
-    console.error(`[Proxy Error] ${e instanceof Error ? e.message : String(e)}`);
     return { success: false, error: e instanceof Error ? e.message : 'Upstream fetch failed' };
   }
 }

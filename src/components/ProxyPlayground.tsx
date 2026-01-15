@@ -28,23 +28,29 @@ export function ProxyPlayground() {
   const [copiedCurl, setCopiedCurl] = useState(false);
   const [copiedJson, setCopiedJson] = useState(false);
   useEffect(() => {
-    let interval: number;
+    let interval: number | undefined;
     if (loading) {
       interval = window.setInterval(() => {
         setLoadingStep(prev => (prev + 1) % LOADING_STEPS.length);
       }, 800);
     }
-    return () => clearInterval(interval);
+    return () => {
+      if (interval) clearInterval(interval);
+    };
   }, [loading]);
   const getFullApiUrl = useCallback(() => {
     const origin = window.location.origin;
     const params = new URLSearchParams();
-    params.append('url', url); // URLSearchParams handles encoding automatically
+    params.append('url', url);
     if (endpoint === 'class' && selector) params.append('class', selector);
     if (endpoint === 'id' && selector) params.append('id', selector);
     return `${origin}/api/${endpoint}?${params.toString()}`;
   }, [url, endpoint, selector]);
   const handleCopyLink = async () => {
+    if (!navigator.clipboard) {
+      toast.error('Clipboard not supported');
+      return;
+    }
     try {
       await navigator.clipboard.writeText(getFullApiUrl());
       setCopiedLink(true);
@@ -55,6 +61,10 @@ export function ProxyPlayground() {
     }
   };
   const handleCopyCurl = async () => {
+    if (!navigator.clipboard) {
+      toast.error('Clipboard not supported');
+      return;
+    }
     const curl = `curl "${getFullApiUrl()}"`;
     try {
       await navigator.clipboard.writeText(curl);
@@ -66,7 +76,7 @@ export function ProxyPlayground() {
     }
   };
   const handleCopyJson = async () => {
-    if (!result) return;
+    if (!result || !navigator.clipboard) return;
     try {
       await navigator.clipboard.writeText(JSON.stringify(result, null, 2));
       setCopiedJson(true);
@@ -127,19 +137,7 @@ export function ProxyPlayground() {
   const getCodeSnippet = () => {
     const origin = window.location.origin;
     const isRaw = endpoint === 'proxy';
-    return `/**
- * FluxGate Edge Proxy Implementation
- * High-performance ${endpoint} extraction
- */
-const target = encodeURIComponent('${url}');
-const fluxGateUrl = \`${origin}/api/${endpoint}?url=\${target}${(endpoint === 'class' || endpoint === 'id') ? `&${endpoint}=${selector}` : ''}\`;
-fetch(fluxGateUrl)
-  .then(res => ${isRaw ? 'res.text()' : 'res.json()'})
-  .then(data => {
-    // Process your proxied data here
-    console.log('Success:', data);
-  })
-  .catch(err => console.error('FluxGate Error:', err));`;
+    return `/**\n * FluxGate Edge Proxy Implementation\n * High-performance ${endpoint} extraction\n */\nconst target = encodeURIComponent('${url}');\nconst fluxGateUrl = \`${origin}/api/${endpoint}?url=\${target}${(endpoint === 'class' || endpoint === 'id') ? `&${endpoint}=${selector}` : ''}\`;\n\nfetch(fluxGateUrl)\n  .then(res => ${isRaw ? 'res.text()' : 'res.json()'})\n  .then(data => {\n    // Process your proxied data here\n    console.log('Success:', data);\n  })\n  .catch(err => console.error('FluxGate Error:', err));`;
   };
   const getOutputCode = () => {
     if (!result) return '';
