@@ -5,16 +5,18 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  "Access-Control-Expose-Headers": "X-Proxied-By, X-Proxy-Mode"
 };
-const USER_AGENT = "FluxGate/2.1 (Cloudflare Worker; High-Performance Path-Based)";
+const USER_AGENT = "FluxGate/2.1 (Cloudflare Worker; High-Performance Extraction Engine)";
 async function handleExtraction(url: string, format: ProxyFormat, className?: string, idName?: string): Promise<ApiResponse<ProxyResponse>> {
   const startTime = Date.now();
   let targetUrl: URL;
   try {
     const decodedUrl = decodeURIComponent(url);
-    targetUrl = new URL(decodedUrl.includes('://') ? decodedUrl : url);
+    // Support both fully qualified and shorthand URLs
+    targetUrl = new URL(decodedUrl.includes('://') ? decodedUrl : `https://${decodedUrl}`);
   } catch (e) {
-    return { success: false, error: 'Invalid Target URL' };
+    return { success: false, error: 'Invalid Target URL. Ensure it is correctly encoded.' };
   }
   if ((format === 'class' && !className) || (format === 'id' && !idName)) {
     return { success: false, error: `Selector required for format: ${format}` };
@@ -23,10 +25,14 @@ async function handleExtraction(url: string, format: ProxyFormat, className?: st
     const response = await fetch(targetUrl.toString(), {
       headers: {
         "User-Agent": USER_AGENT,
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8"
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+        "Cache-Control": "no-cache"
       },
       redirect: 'follow'
     });
+    if (!response.ok) {
+      return { success: false, error: `Upstream returned status ${response.status}` };
+    }
     const contentType = response.headers.get("content-type") || "";
     const rawBody = await response.text();
     const result: ProxyResponse = {
@@ -58,9 +64,8 @@ async function handleExtraction(url: string, format: ProxyFormat, className?: st
             const name = e.getAttribute('name') || e.getAttribute('property');
             const content = e.getAttribute('content');
             if (name && content) {
-              if (['description', 'keywords', 'og:title', 'og:description', 'og:image', 'twitter:card', 'viewport'].includes(name)) {
-                meta[name] = content;
-              }
+              const keys = ['description', 'keywords', 'og:title', 'og:description', 'og:image', 'twitter:card', 'viewport'];
+              if (keys.includes(name)) meta[name] = content;
             }
           }
         })
@@ -73,12 +78,14 @@ async function handleExtraction(url: string, format: ProxyFormat, className?: st
         .on('a', {
           element(e) {
             const href = e.getAttribute('href');
-            if (href && !href.startsWith('#')) try { links.add(new URL(href, targetUrl).href); } catch { /* ignore */ }
+            if (href && !href.startsWith('#') && !href.startsWith('javascript:')) {
+              try { links.add(new URL(href, targetUrl).href); } catch { /* ignore */ }
+            }
           }
         })
         .on('video, source', {
           element(e) {
-            const src = e.getAttribute('src');
+            const src = e.getAttribute('src') || e.getAttribute('data-src');
             if (src) try { videos.add(new URL(src, targetUrl).href); } catch { /* ignore */ }
           }
         });
@@ -119,6 +126,15 @@ async function handleExtraction(url: string, format: ProxyFormat, className?: st
           .replace(/\s+/g, ' ')
           .trim();
       }
+    } else if (format === 'json') {
+      // If it's already JSON but user requested JSON mode, try to parse it
+      try {
+        result.contents = JSON.parse(rawBody);
+      } catch {
+        result.contents = rawBody;
+      }
+    } else {
+      result.contents = rawBody;
     }
     return { success: true, data: result };
   } catch (e) {
@@ -133,26 +149,31 @@ export function userRoutesHandler(app: Hono<{ Bindings: Env }>) {
   });
   app.get('/api/proxy', async (c) => {
     const url = c.req.query('url');
-    if (!url) return c.json({ success: false, error: 'URL required' }, 400);
+    if (!url) return c.json({ success: false, error: 'URL query parameter is required' }, 400);
     try {
       const decodedUrl = decodeURIComponent(url);
-      const response = await fetch(decodedUrl.includes('://') ? decodedUrl : url, {
+      const target = decodedUrl.includes('://') ? decodedUrl : `https://${decodedUrl}`;
+      const response = await fetch(target, {
         headers: { "User-Agent": USER_AGENT },
         redirect: 'follow'
       });
       const headers = new Headers(response.headers);
       headers.set("X-Proxy-Mode", "Streaming");
       headers.set("Access-Control-Allow-Origin", "*");
-      return new Response(response.body, { status: response.status, headers });
+      headers.set("Cache-Control", "public, max-age=3600");
+      return new Response(response.body, { 
+        status: response.status, 
+        headers 
+      });
     } catch (e) {
-      return c.json({ success: false, error: 'Fetch failed' }, 502);
+      return c.json({ success: false, error: 'Fetch failed', detail: e instanceof Error ? e.message : String(e) }, 502);
     }
   });
-  const formats: ProxyFormat[] = ['json', 'text', 'images', 'links', 'videos', 'class', 'id'];
+  const formats: ProxyFormat[] = ['json', 'html', 'text', 'images', 'links', 'videos', 'class', 'id'];
   formats.forEach(f => {
     app.get(`/api/${f}`, async (c) => {
       const url = c.req.query('url');
-      if (!url) return c.json({ success: false, error: 'URL required' }, 400);
+      if (!url) return c.json({ success: false, error: 'URL query parameter is required' }, 400);
       const className = c.req.query('class');
       const idName = c.req.query('id');
       const result = await handleExtraction(url, f, className, idName);

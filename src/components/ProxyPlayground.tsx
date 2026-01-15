@@ -39,7 +39,7 @@ export function ProxyPlayground() {
     };
   }, [loading]);
   const getFullApiUrl = useCallback(() => {
-    const origin = window.location.origin;
+    const origin = window.location.origin.replace(/\/$/, '');
     const params = new URLSearchParams();
     params.append('url', url);
     if (endpoint === 'class' && selector) params.append('class', selector);
@@ -47,24 +47,16 @@ export function ProxyPlayground() {
     return `${origin}/api/${endpoint}?${params.toString()}`;
   }, [url, endpoint, selector]);
   const handleCopyLink = async () => {
-    if (!navigator.clipboard) {
-      toast.error('Clipboard not supported');
-      return;
-    }
     try {
       await navigator.clipboard.writeText(getFullApiUrl());
       setCopiedLink(true);
       toast.success('Direct API link copied');
       setTimeout(() => setCopiedLink(false), 2000);
     } catch (err) {
-      toast.error('Failed to copy');
+      toast.error('Failed to copy link');
     }
   };
   const handleCopyCurl = async () => {
-    if (!navigator.clipboard) {
-      toast.error('Clipboard not supported');
-      return;
-    }
     const curl = `curl "${getFullApiUrl()}"`;
     try {
       await navigator.clipboard.writeText(curl);
@@ -76,7 +68,7 @@ export function ProxyPlayground() {
     }
   };
   const handleCopyJson = async () => {
-    if (!result || !navigator.clipboard) return;
+    if (!result) return;
     try {
       await navigator.clipboard.writeText(JSON.stringify(result, null, 2));
       setCopiedJson(true);
@@ -129,15 +121,16 @@ export function ProxyPlayground() {
         });
       }
     } catch (err) {
-      toast.error('Connection failed');
+      toast.error('Connection failed. Check your target URL.');
+      console.error(err);
     } finally {
       setLoading(false);
     }
   };
   const getCodeSnippet = () => {
-    const origin = window.location.origin;
+    const origin = window.location.origin.replace(/\/$/, '');
     const isRaw = endpoint === 'proxy';
-    return `/**\n * FluxGate Edge Proxy Implementation\n * High-performance ${endpoint} extraction\n */\nconst target = encodeURIComponent('${url}');\nconst fluxGateUrl = \`${origin}/api/${endpoint}?url=\${target}${(endpoint === 'class' || endpoint === 'id') ? `&${endpoint}=${selector}` : ''}\`;\n\nfetch(fluxGateUrl)\n  .then(res => ${isRaw ? 'res.text()' : 'res.json()'})\n  .then(data => {\n    // Process your proxied data here\n    console.log('Success:', data);\n  })\n  .catch(err => console.error('FluxGate Error:', err));`;
+    return `/**\n * FluxGate Edge Proxy Implementation\n * High-performance ${endpoint} extraction\n */\nconst target = encodeURIComponent('${url}');\nconst fluxGateUrl = \`${origin}/api/${endpoint}?url=\${target}${(endpoint === 'class' || endpoint === 'id') ? `&${endpoint}=${selector}` : ''}\`;\n\nfetch(fluxGateUrl)\n  .then(res => ${isRaw ? 'res.text()' : 'res.json()'})\n  .then(data => {\n    // Process your proxied data here\n    console.log('FluxGate Success:', data);\n  })\n  .catch(err => console.error('FluxGate Proxy Error:', err));`;
   };
   const getOutputCode = () => {
     if (!result) return '';
@@ -156,7 +149,7 @@ export function ProxyPlayground() {
               <Input
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
-                placeholder="https://..."
+                placeholder="https://example.com"
                 className="bg-slate-950 border-white/10 h-12 pl-10 focus:ring-indigo-500/50"
               />
             </div>
@@ -170,6 +163,7 @@ export function ProxyPlayground() {
               <SelectContent>
                 <SelectItem value="proxy">Raw Streaming</SelectItem>
                 <SelectItem value="json">Full Metadata</SelectItem>
+                <SelectItem value="html">HTML Extraction</SelectItem>
                 <SelectItem value="text">Clean Text</SelectItem>
                 <SelectItem value="images">Image Assets</SelectItem>
                 <SelectItem value="videos">Video Assets</SelectItem>
@@ -201,7 +195,7 @@ export function ProxyPlayground() {
                 size="icon"
                 className="h-12 w-12 border-white/10 bg-slate-950 hover:bg-white/5"
                 onClick={handleCopyLink}
-                title="Copy endpoint URL"
+                title="Copy direct link"
               >
                 {copiedLink ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
               </Button>
@@ -249,7 +243,11 @@ export function ProxyPlayground() {
                 <div className="flex flex-wrap gap-2">
                   <Badge label="Endpoint" val={`/api/${endpoint}`} />
                   <Badge label="Status" val={result.status.http_code} variant={result.status.http_code >= 400 ? 'error' : 'success'} />
-                  <Badge label="Latency" val={`${result.status.response_time_ms}ms`} />
+                  <Badge 
+                    label="Latency" 
+                    val={`${result.status.response_time_ms}ms`} 
+                    variant={result.status.response_time_ms < 200 ? 'success' : result.status.response_time_ms < 600 ? 'default' : 'error'}
+                  />
                   <Badge label="Type" val={result.status.content_type.split(';')[0]} />
                 </div>
                 <CodeBlock language={endpoint === 'proxy' ? 'html' : 'json'} code={getOutputCode()} />
@@ -257,13 +255,13 @@ export function ProxyPlayground() {
             ) : (
               <div className="flex flex-col items-center justify-center h-[400px] text-slate-600 border-2 border-dashed border-white/5 rounded-xl">
                 <Terminal className="w-12 h-12 opacity-10 mb-4" />
-                <p className="text-sm font-medium opacity-40">Ready to proxy. Paste a URL to begin.</p>
+                <p className="text-sm font-medium opacity-40">Ready to proxy. Paste a target URL and hit Request.</p>
               </div>
             )}
           </TabsContent>
           <TabsContent value="code" className="outline-none">
             <div className="space-y-4">
-              <p className="text-xs font-medium text-slate-500 uppercase tracking-widest px-1">Production Integration</p>
+              <p className="text-xs font-medium text-slate-500 uppercase tracking-widest px-1">Implementation Guide</p>
               <CodeBlock language="javascript" code={getCodeSnippet()} />
             </div>
           </TabsContent>
@@ -281,7 +279,7 @@ function Badge({ label, val, variant = 'default' }: { label: string, val: string
   return (
     <div className={cn("px-4 py-2 border rounded-md flex items-center gap-3 transition-colors", styles[variant])}>
       <span className="text-[9px] font-medium opacity-60 uppercase tracking-widest shrink-0">{label}</span>
-      <span className="text-xs font-mono font-bold truncate max-w-[120px]">{val}</span>
+      <span className="text-xs font-mono font-bold truncate max-w-[150px]">{val}</span>
     </div>
   );
 }
