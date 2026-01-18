@@ -3,6 +3,11 @@ export interface ApiResponse<T = unknown> {
   data?: T;
   error?: string;
 }
+export interface DemoItem {
+  id: string;
+  name: string;
+  value: number;
+}
 export interface StealthOptions {
   ua?: string;
   delay?: number;
