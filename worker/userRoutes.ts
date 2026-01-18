@@ -11,23 +11,20 @@ function getRandomIPv4() {
 }
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 export function userRoutes(app: Hono<{ Bindings: Env }>) {
-  // Common Handler Logic
-  const handleProxyRequest = async (c: any) => {
+  app.get('/api/proxy', async (c) => {
     const targetUrlStr = c.req.query('url');
+    const format = c.req.query('format') || 'json';
     const delay = parseInt(c.req.query('delay') || '0');
     const customUa = c.req.query('ua');
-    const acceptHeader = c.req.header('Accept') || '';
     if (!targetUrlStr) {
       return c.json({ success: false, error: 'URL parameter is required' }, 400);
     }
-    // Safety cap on delay to prevent worker timeout
     if (delay > 0) {
       await sleep(Math.min(delay, 5000));
     }
     try {
-      const decodedUrl = decodeURIComponent(targetUrlStr);
-      // Ensure protocol exists
-      const finalUrl = decodedUrl.includes('://') ? decodedUrl : `https://${decodedUrl}`;
+      const decodedUrl = decodeURIComponent(targetUrlStr).trim();
+      const finalUrl = decodedUrl.startsWith('http') ? decodedUrl : `https://${decodedUrl}`;
       const url = new URL(finalUrl);
       const ua = customUa || USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
       const response = await fetch(url.toString(), {
@@ -38,29 +35,29 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
         },
         redirect: 'follow'
       });
-      // Permissive CORS Headers
       const corsHeaders = {
         "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type",
-        "X-Proxied-By": "FluxGate-Minimal"
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        "X-Proxied-By": "FluxGate-Production"
       };
-      // Mode 1: Raw HTML / Stream
-      // If Accept header explicitly asks for HTML OR if user is visiting via browser and hasn't specified /api prefix
-      const isBrowser = acceptHeader.includes('text/html');
-      const isApiRoute = c.req.path.startsWith('/api');
-      if (isBrowser && !isApiRoute) {
+      // Handle RAW mode (Streaming/Passthrough)
+      if (format === 'raw') {
         const headers = new Headers(response.headers);
         Object.entries(corsHeaders).forEach(([k, v]) => headers.set(k, v));
-        // Comprehensive Security Header Strip
+        // Comprehensive Security Header Strip for Browser Display
         headers.delete('content-security-policy');
         headers.delete('content-security-policy-report-only');
         headers.delete('x-frame-options');
         headers.delete('x-content-type-options');
         headers.delete('strict-transport-security');
-        return new Response(response.body, { status: response.status, headers });
+        headers.delete('report-to');
+        return new Response(response.body, { 
+          status: response.status, 
+          headers 
+        });
       }
-      // Mode 2: JSON Extraction
+      // Handle JSON Extraction Mode
       const body = await response.text();
       const titleMatch = body.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
       const imageMatches = [...body.matchAll(/<img[^>]+src=["']([^"']+)["']/gi)];
@@ -69,21 +66,18 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
         url: url.toString(),
         title: titleMatch ? titleMatch[1].trim() : '',
         contents: body,
-        images: Array.from(new Set(imageMatches.map(m => m[1]))).slice(0, 20),
-        links: Array.from(new Set(linkMatches.map(m => m[1]))).slice(0, 20),
+        images: Array.from(new Set(imageMatches.map(m => m[1]))).slice(0, 25),
+        links: Array.from(new Set(linkMatches.map(m => m[1]))).slice(0, 25),
         meta: {
           status: response.status.toString(),
-          content_type: response.headers.get('content-type') || 'unknown'
+          content_type: response.headers.get('content-type') || 'text/plain',
+          proxied_at: new Date().toISOString()
         }
       };
       return c.json({ success: true, data: result }, { headers: corsHeaders });
     } catch (e) {
-      return c.json({ success: false, error: String(e) }, 500);
+      console.error(`[PROXY ERROR] ${e}`);
+      return c.json({ success: false, error: 'Proxy request failed', detail: String(e) }, 500);
     }
-  };
-  // Standard endpoint
-  app.get('/api/proxy', handleProxyRequest);
-  // allOrigins Style Aliases
-  app.get('/api', handleProxyRequest);
-  app.get('/', handleProxyRequest);
+  });
 }
