@@ -8,37 +8,29 @@ const USER_AGENTS = [
   "Mozilla/5.0 (iPhone; CPU iPhone OS 17_3_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.3.1 Mobile/15E148 Safari/604.1",
   "Mozilla/5.0 (iPad; CPU OS 17_3_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.3.1 Mobile/15E148 Safari/604.1",
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:122.0) Gecko/20100101 Firefox/122.0",
-  "Mozilla/5.0 (Macintosh; Intel Mac OS X 14.3; rv:122.0) Gecko/20100101 Firefox/122.0",
-  "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_3_1) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.3.1 Safari/605.1.15",
-  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36 Edg/121.0.0.0",
-  "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Mobile Safari/537.36",
-  "Mozilla/5.0 (Android 14; Mobile; rv:122.0) Gecko/122.0 Firefox/122.0",
-  "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
-  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
-  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
-  "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0",
-  "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1",
-  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-  "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Mobile Safari/537.36",
-  "Mozilla/5.0 (Linux; Android 14; Samsung Galaxy S23) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Mobile Safari/537.36",
-  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/115.0"
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_3_1) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.3.1 Safari/605.1.15"
 ];
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
-  "Access-Control-Expose-Headers": "X-Proxied-By, X-Proxy-Mode, X-Stealth-Active"
+  "Access-Control-Expose-Headers": "X-Proxied-By, X-Proxy-Mode, X-Stealth-Active, X-Assigned-UA"
 };
 function getRandomIPv4() {
   return Array.from({ length: 4 }, () => Math.floor(Math.random() * 256)).join('.');
 }
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+function getSafeDelay(delayInput: string | undefined): number {
+  if (!delayInput) return 0;
+  const parsed = parseInt(delayInput);
+  if (isNaN(parsed)) return 0;
+  return Math.min(Math.max(parsed, 0), 10000); // Cap at 10s
+}
 async function handleExtraction(url: string, format: ProxyFormat, className?: string, idName?: string, options: { ua?: string, delay?: number, referer?: string } = {}): Promise<ApiResponse<ProxyResponse>> {
   const startTime = Date.now();
-  if (options.delay) {
-    const delayAmount = Math.min(Math.max(options.delay, 0), 10000);
-    const jitter = Math.random() * 500;
-    await sleep(delayAmount + jitter);
+  if (options.delay && options.delay > 0) {
+    const jitter = Math.random() * 200; // ±200ms jitter
+    await sleep(options.delay + jitter);
   }
   let targetUrl: URL;
   try {
@@ -57,11 +49,9 @@ async function handleExtraction(url: string, format: ProxyFormat, className?: st
       headers: {
         "User-Agent": assignedUA,
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.5",
         "Referer": options.referer || targetUrl.origin,
         "X-Forwarded-For": spoofedIP,
         "Cache-Control": "no-cache",
-        "Upgrade-Insecure-Requests": "1"
       },
       redirect: 'follow'
     });
@@ -81,17 +71,11 @@ async function handleExtraction(url: string, format: ProxyFormat, className?: st
         stealth_active: true,
         assigned_ua: assignedUA
       },
-      images: [],
-      links: [],
-      videos: [],
-      extractedElements: [],
-      meta: {}
+      images: [], links: [], videos: [], extractedElements: [], meta: {}
     };
     if (contentType.includes("text/html")) {
       const images = new Set<string>();
       const links = new Set<string>();
-      const videos = new Set<string>();
-      const elements: ExtractedElement[] = [];
       let titleText = "";
       const meta: Record<string, string> = {};
       const rewriter = new HTMLRewriter()
@@ -100,10 +84,7 @@ async function handleExtraction(url: string, format: ProxyFormat, className?: st
           element(e) {
             const name = e.getAttribute('name') || e.getAttribute('property');
             const content = e.getAttribute('content');
-            if (name && content) {
-              const keys = ['description', 'keywords', 'og:title', 'og:description', 'og:image', 'twitter:card', 'viewport'];
-              if (keys.includes(name)) meta[name] = content;
-            }
+            if (name && content) meta[name] = content;
           }
         })
         .on('img', {
@@ -115,60 +96,39 @@ async function handleExtraction(url: string, format: ProxyFormat, className?: st
         .on('a', {
           element(e) {
             const href = e.getAttribute('href');
-            if (href && !href.startsWith('#') && !href.startsWith('javascript:')) {
-              try { links.add(new URL(href, targetUrl).href); } catch { /* ignore */ }
-            }
-          }
-        })
-        .on('video, source', {
-          element(e) {
-            const src = e.getAttribute('src') || e.getAttribute('data-src');
-            if (src) try { videos.add(new URL(src, targetUrl).href); } catch { /* ignore */ }
+            if (href && !href.startsWith('#')) try { links.add(new URL(href, targetUrl).href); } catch { /* ignore */ }
           }
         });
       const selector = format === 'class' ? `.${className}` : format === 'id' ? `#${idName}` : null;
       if (selector) {
-        let currentElement: ExtractedElement | null = null;
         rewriter.on(selector, {
           element(e) {
-            currentElement = { tag: e.tagName, attrs: {}, innerText: "", innerHTML: "" };
-            for (const [name, value] of e.attributes) {
-              currentElement.attrs[name] = value;
-            }
-            elements.push(currentElement);
+            const el: ExtractedElement = { tag: e.tagName, attrs: {}, innerText: "", innerHTML: "" };
+            for (const [name, value] of e.attributes) el.attrs[name] = value;
+            result.extractedElements?.push(el);
           },
           text(t) {
-            if (currentElement) {
-              currentElement.innerText += t.text;
+            if (result.extractedElements?.length) {
+              result.extractedElements[result.extractedElements.length - 1].innerText += t.text;
             }
           }
         });
       }
       await rewriter.transform(new Response(rawBody)).text();
-      result.title = titleText.replace(/\s+/g, ' ').trim();
+      result.title = titleText.trim();
       result.meta = meta;
       result.images = Array.from(images).slice(0, 50);
-      result.links = Array.from(links).slice(0, 100);
-      result.videos = Array.from(videos);
-      result.extractedElements = elements.map(el => ({
-        ...el,
-        innerText: el.innerText.replace(/\s+/g, ' ').trim()
-      }));
+      result.links = Array.from(links).slice(0, 50);
       if (format === 'text') {
         result.text = rawBody
           .replace(/<script\b[^>]*>([\s\S]*?)<\/script>/gim, "")
           .replace(/<style\b[^>]*>([\s\S]*?)<\/style>/gim, "")
-          .replace(/<code\b[^>]*>([\s\S]*?)<\/code>/gim, "")
           .replace(/<[^>]*>?/gm, ' ')
           .replace(/\s+/g, ' ')
           .trim();
       }
     } else if (format === 'json') {
-      try {
-        result.contents = JSON.parse(rawBody);
-      } catch {
-        result.contents = rawBody;
-      }
+      try { result.contents = JSON.parse(rawBody); } catch { result.contents = rawBody; }
     } else {
       result.contents = rawBody;
     }
@@ -186,42 +146,37 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
   });
   app.get('/api/proxy', async (c) => {
     const url = c.req.query('url');
-    const delay = parseInt(c.req.query('delay') || '0');
+    const delay = getSafeDelay(c.req.query('delay'));
     const ua = c.req.query('ua');
     const referer = c.req.query('referer');
     if (!url) return c.json({ success: false, error: 'URL query parameter is required' }, 400);
     if (delay > 0) {
-      await sleep(Math.min(delay, 10000));
+      await sleep(delay + (Math.random() * 200));
     }
     try {
       const decodedUrl = decodeURIComponent(url);
       const target = decodedUrl.includes('://') ? decodedUrl : `https://${decodedUrl}`;
       const assignedUA = ua || USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
       const response = await fetch(target, {
-        headers: { 
+        headers: {
           "User-Agent": assignedUA,
           "Referer": referer || new URL(target).origin,
           "X-Forwarded-For": getRandomIPv4(),
-          "Accept-Encoding": "identity"
         },
         redirect: 'follow'
       });
       const headers = new Headers();
       response.headers.forEach((v, k) => {
         const lowerK = k.toLowerCase();
-        if (!lowerK.startsWith('cf-') && !['content-encoding', 'content-length', 'transfer-encoding', 'connection', 'x-real-ip'].includes(lowerK)) {
+        if (!['content-encoding', 'content-length', 'transfer-encoding', 'connection'].includes(lowerK)) {
           headers.set(k, v);
         }
       });
-      headers.set("X-Proxy-Mode", "Stealth-Streaming");
       headers.set("Access-Control-Allow-Origin", "*");
       headers.set("X-Assigned-UA", assignedUA);
-      return new Response(response.body, {
-        status: response.status,
-        headers
-      });
+      return new Response(response.body, { status: response.status, headers });
     } catch (e) {
-      return c.json({ success: false, error: 'Fetch failed', detail: e instanceof Error ? e.message : String(e) }, 502);
+      return c.json({ success: false, error: 'Fetch failed', detail: String(e) }, 502);
     }
   });
   const formats: ProxyFormat[] = ['json', 'html', 'text', 'images', 'links', 'videos', 'class', 'id'];
@@ -231,12 +186,16 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
       if (!url) return c.json({ success: false, error: 'URL query parameter is required' }, 400);
       const options = {
         ua: c.req.query('ua'),
-        delay: parseInt(c.req.query('delay') || '0'),
+        delay: getSafeDelay(c.req.query('delay')),
         referer: c.req.query('referer')
       };
       const result = await handleExtraction(url, f, c.req.query('class'), c.req.query('id'), options);
       if (!result.success) return c.json(result, 400);
-      return c.json(result);
+      const response = c.json(result);
+      if (result.data?.status.assigned_ua) {
+        response.headers.set("X-Assigned-UA", result.data.status.assigned_ua);
+      }
+      return response;
     });
   });
 }
