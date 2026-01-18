@@ -11,8 +11,8 @@ function getRandomIPv4() {
 }
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 export function userRoutes(app: Hono<{ Bindings: Env }>) {
-  // Single endpoint: /api/proxy
-  app.get('/api/proxy', async (c) => {
+  // Common Handler Logic
+  const handleProxyRequest = async (c: any) => {
     const targetUrlStr = c.req.query('url');
     const delay = parseInt(c.req.query('delay') || '0');
     const customUa = c.req.query('ua');
@@ -20,12 +20,15 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     if (!targetUrlStr) {
       return c.json({ success: false, error: 'URL parameter is required' }, 400);
     }
+    // Safety cap on delay to prevent worker timeout
     if (delay > 0) {
       await sleep(Math.min(delay, 5000));
     }
     try {
       const decodedUrl = decodeURIComponent(targetUrlStr);
-      const url = new URL(decodedUrl.includes('://') ? decodedUrl : `https://${decodedUrl}`);
+      // Ensure protocol exists
+      const finalUrl = decodedUrl.includes('://') ? decodedUrl : `https://${decodedUrl}`;
+      const url = new URL(finalUrl);
       const ua = customUa || USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
       const response = await fetch(url.toString(), {
         headers: {
@@ -42,13 +45,19 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
         "Access-Control-Allow-Headers": "Content-Type",
         "X-Proxied-By": "FluxGate-Minimal"
       };
-      // Mode 1: Raw HTML / Stream (If Accept header asks for HTML)
-      if (acceptHeader.includes('text/html')) {
+      // Mode 1: Raw HTML / Stream
+      // If Accept header explicitly asks for HTML OR if user is visiting via browser and hasn't specified /api prefix
+      const isBrowser = acceptHeader.includes('text/html');
+      const isApiRoute = c.req.path.startsWith('/api');
+      if (isBrowser && !isApiRoute) {
         const headers = new Headers(response.headers);
         Object.entries(corsHeaders).forEach(([k, v]) => headers.set(k, v));
-        // Remove restrictive security headers from upstream
+        // Comprehensive Security Header Strip
         headers.delete('content-security-policy');
+        headers.delete('content-security-policy-report-only');
         headers.delete('x-frame-options');
+        headers.delete('x-content-type-options');
+        headers.delete('strict-transport-security');
         return new Response(response.body, { status: response.status, headers });
       }
       // Mode 2: JSON Extraction
@@ -71,5 +80,10 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     } catch (e) {
       return c.json({ success: false, error: String(e) }, 500);
     }
-  });
+  };
+  // Standard endpoint
+  app.get('/api/proxy', handleProxyRequest);
+  // allOrigins Style Aliases
+  app.get('/api', handleProxyRequest);
+  app.get('/', handleProxyRequest);
 }
