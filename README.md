@@ -1,6 +1,6 @@
 # Fluxgate
 
-[cloudflarebutton]
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/dhanjeerider/All-origin-cors-proxy)
 
 A production-ready full-stack application template built on Cloudflare Workers. This template provides a seamless development experience with a React frontend, serverless backend using Hono, persistent storage via Durable Objects, and modern UI components powered by shadcn/ui and Tailwind CSS.
 
@@ -139,7 +139,7 @@ bunx wrangler deploy
 3. **Environment Variables**: Add via `wrangler secret put` or Dashboard.
 4. **Durable Objects**: Auto-migrated via `migrations` in `wrangler.jsonc`.
 
-[cloudflarebutton]
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/dhanjeerider/All-origin-cors-proxy)
 
 ## Linting & Formatting
 
